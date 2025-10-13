@@ -5,7 +5,7 @@ from sqlalchemy import pool
 
 from core.config_loader import settings
 from core.database import Base
-from user.models import user
+
 
 from alembic import context
 
@@ -23,6 +23,18 @@ if config.config_file_name is not None:
 # add your model's MetaData object here
 # for 'autogenerate' support
 # from myapp import mymodel
+from user.models import user
+from organization.models import organization
+from membership.models import membership
+from location.models import location
+from employee.models import employee
+from role.models import role
+from publication.models import publication
+from preference.models import preference
+from unavailability.models import unavailability
+from assignment.models import assignment
+from shift.models import shift
+
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
