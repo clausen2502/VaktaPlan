@@ -26,7 +26,6 @@ def user_list(current_user: User = Depends(get_current_active_user)):
     return current_user
 
 
-
 @user_router.get('/{user_id}', response_model=UserSchema)
 def user_detail(user_id: int, db: Session = Depends(get_db)):
     db_user = get_user(db, user_id)

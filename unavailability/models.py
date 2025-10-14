@@ -10,7 +10,7 @@ class Unavailability(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     employee_id: Mapped[int] = mapped_column(
         ForeignKey("employees.id", ondelete="CASCADE"), index=True
-    )
+        )
     start_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     end_at:   Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     reason:   Mapped[str | None] = mapped_column(String(128))
