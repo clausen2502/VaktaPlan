@@ -23,17 +23,8 @@ if config.config_file_name is not None:
 # add your model's MetaData object here
 # for 'autogenerate' support
 # from myapp import mymodel
-from user.models import user
-from organization.models import organization
-from membership.models import membership
-from location.models import location
-from employee.models import employee
-from role.models import role
-from publication.models import publication
-from preference.models import preference
-from unavailability.models import unavailability
-from assignment.models import assignment
-from shift.models import shift
+
+import models_bootstrap
 
 target_metadata = Base.metadata
 

@@ -4,9 +4,9 @@ from sqlalchemy.orm import Session
 
 from auth.services.auth_service import get_current_active_user
 from core.database import get_db
-from user.models.user import User
-from user.schemas.user import UserSchema, UserCreate
-from user.services.user_service import get_users, create_user, get_user, delete_user
+from user.models import User
+from user.schemas import UserSchema, UserCreate
+from user.service import get_users, create_user, get_user, delete_user
 
 user_router = APIRouter(
     prefix='/users',

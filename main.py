@@ -3,7 +3,9 @@ from starlette.middleware.cors import CORSMiddleware
 from core.config_loader import settings
 
 from auth.routes.auth_router import auth_router
-from user.routes.user_router import user_router
+from user.router import user_router
+from shift.router import shift_router
+import models_bootstrap 
 
 openapi_tags = [
     {
@@ -31,6 +33,7 @@ if settings.BACKEND_CORS_ORIGINS:
 
 app.include_router(auth_router, prefix='/api')
 app.include_router(user_router, prefix='/api', tags=['Users'])
+app.include_router(shift_router, prefix='/api', tags=['Shifts'])
 
 @app.get("/health", tags=['Health Checks'])
 def read_root():

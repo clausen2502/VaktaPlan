@@ -10,8 +10,8 @@ from fastapi import Depends, HTTPException, status
 from datetime import datetime, timedelta, timezone
 import jwt
 from core.database import get_db
-from user.models.user import User
-from user.services.user_service import get_user_by_email
+from user.models import User
+from user.service import get_user_by_email
 
 SECRET_KEY = settings.JWT_SECRET_KEY
 ALGORITHM = "HS256"

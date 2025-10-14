@@ -28,7 +28,3 @@ class OrgMember(Base):
     # relationships
     org = relationship("Organization", back_populates="members")
     user = relationship("User", back_populates="memberships")
-
-    __table_args__ = (
-        UniqueConstraint("user_id", "org_id", name="uq_orgmember_user_org"),
-    )
