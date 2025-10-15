@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main, dev, "**/feature/**" ]
+    branches: [ "main", "dev", "**/feature/**" ]
   pull_request:
-    branches: [ main, dev ]
+    branches: [ "main", "dev" ]
 
 jobs:
   tests:
@@ -17,8 +17,8 @@ jobs:
 
     env:
       # Harmless in-memory DB so imports don't try Postgres
-      SQLALCHEMY_DATABASE_URI: sqlite+pysqlite:///:memory:
-      ENVIRONMENT: test
+      SQLALCHEMY_DATABASE_URI: "sqlite+pysqlite:///:memory:"
+      ENVIRONMENT: "test"
 
     steps:
       - name: Checkout
@@ -42,30 +42,21 @@ jobs:
           python -V
           pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          # Make sure test tools exist (pytest runs unittest too)
           pip install pytest pytest-cov
 
-      - name: Run unittest with coverage
+      - name: Run tests with coverage
         run: |
-          pip install coverage
-          coverage run -m unittest discover -s tests -p "test_*.py" -v
-          coverage xml -o coverage.xml
+          pytest -q --maxfail=1 --disable-warnings \
+            --cov=. \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage.xml \
+            --junitxml=pytest-report.xml
 
       - name: Upload test reports
-        uses: actions/upload-artifact@v4
         if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: test-reports
           path: |
             pytest-report.xml
             coverage.xml
-
-      - name: Coverage summary
-        if: always()
-        run: |
-          python - << 'PY'
-          import xml.etree.ElementTree as ET
-          t = ET.parse('coverage.xml').getroot()
-          cov = float(t.attrib['line-rate'])*100
-          print(f"TOTAL coverage: {cov:.2f}%")
-          PY
