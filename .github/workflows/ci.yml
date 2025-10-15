@@ -8,17 +8,22 @@ on:
 
 jobs:
   tests:
-    name: Unit tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: [ "3.12" ]
 
     env:
-      # Harmless in-memory DB so imports don't try Postgres
+      # Your Settings() expects ENVIRONMENT to be one of these literals.
+      ENVIRONMENT: "local"
+
+      # Satisfy required fields with safe dummy values:
+      JWT_SECRET_KEY: "dummy-secret-key"
+      POSTGRESQL_USERNAME: "dummy"
+      POSTGRESQL_PASSWORD: "dummy"
+      POSTGRESQL_SERVER: "localhost"
+      POSTGRESQL_PORT: "5432"
+      POSTGRESQL_DATABASE: "dummy"
+
+      # Point SQLAlchemy to an in-memory SQLite so imports don't try Postgres.
       SQLALCHEMY_DATABASE_URI: "sqlite+pysqlite:///:memory:"
-      ENVIRONMENT: "test"
 
     steps:
       - name: Checkout
@@ -27,36 +32,32 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.12"
 
       - name: Cache pip
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
-            ${{ runner.os }}-pip-${{ matrix.python-version }}-
+            ${{ runner.os }}-pip-
 
-      - name: Install dependencies
+      - name: Install deps
         run: |
           python -V
           pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          pip install pytest pytest-cov
+          pip install coverage
 
-      - name: Run tests with coverage
+      - name: Run unit tests with coverage
         run: |
-          pytest -q --maxfail=1 --disable-warnings \
-            --cov=. \
-            --cov-report=term-missing \
-            --cov-report=xml:coverage.xml \
-            --junitxml=pytest-report.xml
+          coverage run -m unittest discover -s tests -p "test_*.py" -v
+          coverage report -m
+          coverage xml -o coverage.xml
 
-      - name: Upload test reports
+      - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-reports
-          path: |
-            pytest-report.xml
-            coverage.xml
+          name: coverage
+          path: coverage.xml
