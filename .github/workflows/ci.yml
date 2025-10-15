@@ -51,8 +51,9 @@ jobs:
 
       - name: Run unit tests with coverage
         run: |
-          coverage run -m unittest discover -s tests -p "test_*.py" -v
-          coverage report -m
+          coverage run --omit="tests/*,main.py,*/__init__.py,**/alembic/*,**/migrations/*" \
+            -m unittest discover -s tests -p "test_*.py" -v
+          coverage report --omit="tests/*,main.py,*/__init__.py,**/alembic/*,**/migrations/*"
           coverage xml -o coverage.xml
 
       - name: Upload coverage report
