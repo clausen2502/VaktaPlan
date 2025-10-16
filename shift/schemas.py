@@ -1,13 +1,40 @@
 from datetime import datetime
-from pydantic import BaseModel
+from typing import Optional
+from pydantic import BaseModel, Field, ConfigDict, field_validator, FieldValidationInfo
+from .models import ShiftStatus
 
 class ShiftRead(BaseModel):
     id: int
     org_id: int
-    location_id: int
-    role_id: int
+    location_id: Optional[int] = None
+    role_id: Optional[int] = None
     start_at: datetime
     end_at: datetime
+    status: ShiftStatus
+    notes: Optional[str] = None
 
-    class Config:
-        from_attributes = True  # so we get attributes, not dict. (wouldn't even work without this)
+    model_config = ConfigDict(from_attributes=True)
+
+class ShiftCreateIn(BaseModel):
+    org_id: int
+    location_id: Optional[int] = None
+    role_id: Optional[int] = None
+    start_at: datetime = Field(..., description="Timezone-aware ISO8601 (2025-10-16T09:00:00Z)")
+    end_at: datetime   = Field(..., description="Timezone-aware ISO8601 (2025-10-16T09:00:00Z)")
+    status: ShiftStatus = ShiftStatus.draft
+    notes: Optional[str] = None
+    
+    @field_validator("start_at", "end_at")
+    @classmethod
+    def tz_aware(classmethod, value: datetime) -> datetime:
+        if value.tzinfo is None or value.tzinfo.utcoffset(value) is None:
+            raise ValueError("Datetime must be timezone-aware (2025-10-16T09:00:00Z)")
+        return value
+
+    @field_validator("end_at")
+    @classmethod
+    def end_after_start(cls, end: datetime, info: FieldValidationInfo) -> datetime:
+        start = info.data.get("start_at")
+        if start and end <= start:
+            raise ValueError("The end date must be after the start date!")
+        return end
