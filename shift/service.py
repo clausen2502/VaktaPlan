@@ -3,10 +3,11 @@ from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from typing import Optional
-from fastapi import HTTPException
+from fastapi import HTTPException, status
+
 
 from .models import Shift, ShiftStatus
-from .schemas import ShiftCreateIn
+from .schemas import ShiftCreateIn, ShiftUpdateIn
 
 def get_shift(db: Session, shift_id: int) -> Shift:
     """
@@ -70,3 +71,23 @@ def delete_shift(db: Session, shift_id: int) -> None:
         db.delete(db_shift)
         db.commit()
     return
+
+def update_shift(db: Session, shift_id: int, patch: ShiftUpdateIn) -> Shift:
+    db_shift = db.query(Shift).filter(Shift.id == shift_id).first()
+    if not db_shift:
+        raise HTTPException(status_code=404, detail="Shift not found")
+
+    data = patch.model_dump(exclude_unset=True, exclude_none=True)
+    new_start = data.get("start_at", db_shift.start_at)
+    new_end   = data.get("end_at",   db_shift.end_at)
+
+    # validation
+    if new_start is not None and new_end is not None and new_start >= new_end:
+        raise HTTPException(status_code=422, detail="start_at must be before end_at")
+
+    for k, v in data.items():
+        setattr(db_shift, k, v)
+
+    db.commit()
+    db.refresh(db_shift)
+    return db_shift

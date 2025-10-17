@@ -41,5 +41,7 @@ curl -sS -X POST "$BASE/api/shifts" \
 # 4) Delete shift with id=2
 curl -i -X DELETE "$BASE/api/shifts/2"
 
-# (optional) Verify it’s gone
-curl -i "$BASE/api/shifts/2"
+# 5) Update Shift example
+curl -X PATCH "$BASE/api/shifts/1" \
+  -H "Content-Type: application/json" \
+  -d '{"end_at":"2025-10-16T18:00:00Z"}'

@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Query, status, HTTPException
 from sqlalchemy.orm import Session
 
 from core.database import get_db
-from .schemas import ShiftRead, ShiftCreateIn
+from .schemas import ShiftRead, ShiftCreateIn, ShiftUpdateIn
 from .models import ShiftStatus
 from . import service
 
@@ -52,3 +52,8 @@ def delete_shift(shift_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Shift not found")
     service.delete_shift(db, shift_id)
     return {"message": "Shift Deleted"}
+
+# Update
+@shift_router.patch("/{shift_id}", response_model=ShiftRead, status_code=status.HTTP_200_OK)
+def patch_shift(shift_id: int, payload: ShiftUpdateIn, db: Session = Depends(get_db)):
+    return service.update_shift(db, shift_id, payload)

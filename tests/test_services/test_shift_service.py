@@ -4,14 +4,15 @@ from datetime import datetime, timezone, timedelta
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from fastapi import HTTPException
 
-from core.database import Base  # your app's Base
+from core.database import Base
 
-# Import models so they register with Base BEFORE create_all()
 from organization.models import Organization
 from location.models import Location
 from shift.models import Shift, ShiftStatus
 from shift import service
+from shift.schemas import ShiftUpdateIn
 
 
 class Obj:
@@ -141,6 +142,48 @@ class ShiftServiceTests(unittest.TestCase):
         # still 3 originals remain (we didn’t delete any real row)
         rows = service.get_shifts(self.db)
         self.assertEqual(len(rows), 3)
+    
+    def test_update_shift_end_time_only(self):
+    # Take existing shift and extend by 1 hour
+        shift_id = self.ids[0]
+        before = service.get_shift(self.db, shift_id)
+        new_end = before.end_at + timedelta(hours=1)
+
+        patch = ShiftUpdateIn(end_at=new_end)
+        after = service.update_shift(self.db, shift_id, patch)
+
+        assert after.id == shift_id
+        assert after.end_at == new_end
+        # unchanged fields remain the same
+        assert after.start_at == before.start_at
+        assert after.location_id == before.location_id
+        assert after.status == before.status
+
+    def test_update_shift_notes_only(self):
+        shift_id = self.ids[1]
+        patch = ShiftUpdateIn(notes="updated notes")
+        after = service.update_shift(self.db, shift_id, patch)
+        assert after.notes == "updated notes"
+
+    def test_update_shift_invalid_dates_422(self):
+        shift_id = self.ids[2]
+        current = service.get_shift(self.db, shift_id)
+
+        # Make start_at later than the already-saved end_at
+        bad_start = current.end_at + timedelta(hours=1)
+
+        # Construct WITHOUT validation so we can hit the service-level guard
+        patch = ShiftUpdateIn.model_construct(start_at=bad_start)
+
+        with self.assertRaises(HTTPException) as cm:
+            service.update_shift(self.db, shift_id, patch)
+        self.assertEqual(cm.exception.status_code, 422)
+
+    def test_update_shift_not_found_404(self):
+        patch = ShiftUpdateIn(notes="doesn't matter")
+        with self.assertRaises(HTTPException) as cm:
+            service.update_shift(self.db, 999999, patch)
+        assert cm.exception.status_code == 404
 
 
 if __name__ == "__main__":

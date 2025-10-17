@@ -115,3 +115,47 @@ class ShiftRouterTests(unittest.TestCase):
         self.assertEqual(data["id"], 1)
         self.assertEqual(data["org_id"], 1)
         self.assertEqual(data["status"], "published")
+    
+    @patch("shift.router.service.update_shift")
+    def test_patch_shift_200(self, mock_update):
+        updated = Obj(
+            id=1, org_id=1, location_id=1, role_id=1,
+            start_at=datetime(2025, 10, 16, 9, 0, tzinfo=timezone.utc),
+            end_at=datetime(2025, 10, 16, 18, 0, tzinfo=timezone.utc),
+            status="draft", notes="front desk"
+        )
+        mock_update.return_value = updated
+        client = TestClient(app)
+
+        resp = client.patch("/api/shifts/1", json={"end_at": "2025-10-16T18:00:00Z"})
+        assert resp.status_code == 200, resp.text
+        data = resp.json()
+        assert data["id"] == 1
+        assert data["end_at"] == "2025-10-16T18:00:00Z"
+
+    @patch("shift.router.service.update_shift")
+    def test_patch_shift_404(self, mock_update):
+        mock_update.side_effect = HTTPException(status_code=404, detail="Shift not found")
+
+        from main import app
+        from fastapi.testclient import TestClient
+        client = TestClient(app)
+
+        resp = client.patch("/api/shifts/9999", json={"end_at": "2025-10-16T18:00:00Z"})
+        assert resp.status_code == 404
+
+    @patch("shift.router.service.update_shift")
+    def test_patch_shift_422(self, mock_update):
+        mock_update.side_effect = HTTPException(status_code=422, detail="start_at must be before end_at")
+
+        from main import app
+        from fastapi.testclient import TestClient
+        client = TestClient(app)
+
+        # provide both so validation message makes sense
+        payload = {
+            "start_at": "2025-10-16T19:00:00Z",
+            "end_at":   "2025-10-16T18:00:00Z",
+        }
+        resp = client.patch("/api/shifts/1", json=payload)
+        assert resp.status_code == 422
