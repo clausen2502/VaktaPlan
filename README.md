@@ -8,11 +8,11 @@ fastapi dev main.py
 python -m unittest discover -s tests -p "test_*.py" -v
 
 ### layout
-  router.py        # FastAPI: @get/@post endpoints
-  schemas.py       # Pydantic: ShiftCreateIn, ShiftRead, etc.
-  service.py       # Orchestration: DB session, repos, logic calls
-  logic.py         # Domain: validate_window, detect_conflicts, compute_payable
-  model.py         # SQLAlchemy: class Shift(Base)
+router.py        # FastAPI: @get/@post endpoints
+schemas.py       # Pydantic: ShiftCreateIn, ShiftRead, etc.
+service.py       # Orchestration: DB session, repos, logic calls
+logic.py         # Domain: validate_window, detect_conflicts, compute_payable
+model.py         # SQLAlchemy: class Shift(Base)
 
 # Run instructions - curl commands
 BASE="http://127.0.0.1:8000"
