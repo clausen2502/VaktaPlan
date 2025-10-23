@@ -5,6 +5,7 @@ from core.config_loader import settings
 from auth.routes.auth_router import auth_router
 from user.router import user_router
 from shift.router import shift_router
+from location.router import location_write_router, location_read_router
 import models_bootstrap 
 
 openapi_tags = [
@@ -31,9 +32,11 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_headers=["*"],
     )
 
-app.include_router(auth_router, prefix='/api')
-app.include_router(user_router, prefix='/api', tags=['Users'])
-app.include_router(shift_router, prefix='/api', tags=['Shifts'])
+app.include_router(auth_router, prefix="/api")
+app.include_router(user_router, prefix="/api")
+app.include_router(shift_router, prefix="/api")
+app.include_router(location_read_router, prefix="/api")
+app.include_router(location_write_router, prefix="/api")
 
 @app.get("/health", tags=['Health Checks'])
 def read_root():

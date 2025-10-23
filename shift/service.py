@@ -91,3 +91,7 @@ def update_shift(db: Session, shift_id: int, patch: ShiftUpdateIn) -> Shift:
     db.commit()
     db.refresh(db_shift)
     return db_shift
+
+def get_shift_for_org(db: Session, shift_id: int, org_id: int) -> Optional[Shift]:
+    statement = select(Shift).where(Shift.id == shift_id, Shift.org_id == org_id)
+    return db.scalars(statement).first()
