@@ -3,14 +3,19 @@ from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from typing import Optional
-from sqlalchemy.exc import IntegrityError
-from fastapi import HTTPException
+from fastapi import HTTPException, status
+
 
 from .models import Shift, ShiftStatus
-from .schemas import ShiftCreateIn
+from .schemas import ShiftCreateIn, ShiftUpdateIn
 
+def get_shift(db: Session, shift_id: int) -> Shift:
+    """
+    Get a single shift by id.
+    """
+    return db.query(Shift).filter(Shift.id == shift_id).first()
 
-def list_shifts(
+def get_shifts(
     db: Session,
     *,
     org_id: Optional[int] = None,
@@ -22,15 +27,6 @@ def list_shifts(
     ) -> list[Shift]:
     """
     Return shifts, optionally filtered by org and time window.
-
-    Args:
-        db: SQLAlchemy session.
-        org_id: If provided, only shifts for this organization are returned.
-        start: If provided, include shifts that *end after* this instant (overlap).
-        end: If provided, include shifts that *start before* this instant (overlap).
-
-    Returns:
-        A list of 'Shift' ORM objects ordered by 'start_at'.
     """
     statement = select(Shift)
     if org_id is not None:
@@ -48,21 +44,54 @@ def list_shifts(
     statement = statement.order_by(Shift.start_at)
     return list(db.scalars(statement))
 
-def create_shift(db: Session, payload: ShiftCreateIn) -> Shift:
-    shift_obj = Shift(
-        org_id=payload.org_id,
-        location_id=payload.location_id,
-        role_id=payload.role_id,
-        start_at=payload.start_at,
-        end_at=payload.end_at,
-        status=payload.status,
-        notes=payload.notes,
+def create_shift(db: Session, shift: ShiftCreateIn) -> Shift:
+    """
+    Create a new Shift.
+    """
+    db_shift = Shift(
+        org_id=shift.org_id,
+        location_id=shift.location_id,
+        role_id=shift.role_id,
+        start_at=shift.start_at,
+        end_at=shift.end_at,
+        status=shift.status,
+        notes=shift.notes,
     )
-    db.add(shift_obj)
-    try:
+    db.add(db_shift)
+    db.commit()
+    db.refresh(db_shift)
+    return db_shift
+
+def delete_shift(db: Session, shift_id: int) -> None:
+    """
+    Delete shifts by id.
+    """
+    db_shift = db.query(Shift).filter(Shift.id == shift_id).first()
+    if db_shift:
+        db.delete(db_shift)
         db.commit()
-    except IntegrityError:
-        db.rollback()
-        raise HTTPException(409, "Constraint failed")
-    db.refresh(shift_obj)
-    return shift_obj
+    return
+
+def update_shift(db: Session, shift_id: int, patch: ShiftUpdateIn) -> Shift:
+    db_shift = db.query(Shift).filter(Shift.id == shift_id).first()
+    if not db_shift:
+        raise HTTPException(status_code=404, detail="Shift not found")
+
+    data = patch.model_dump(exclude_unset=True, exclude_none=True)
+    new_start = data.get("start_at", db_shift.start_at)
+    new_end   = data.get("end_at",   db_shift.end_at)
+
+    # validation
+    if new_start is not None and new_end is not None and new_start >= new_end:
+        raise HTTPException(status_code=422, detail="start_at must be before end_at")
+
+    for k, v in data.items():
+        setattr(db_shift, k, v)
+
+    db.commit()
+    db.refresh(db_shift)
+    return db_shift
+
+def get_shift_for_org(db: Session, shift_id: int, org_id: int) -> Optional[Shift]:
+    statement = select(Shift).where(Shift.id == shift_id, Shift.org_id == org_id)
+    return db.scalars(statement).first()

@@ -23,7 +23,7 @@ def authenticate_user(email: str, password: str, db:Session = Depends(get_db)):
     user = get_user_by_email(db, email)
     if not user:
         return False
-    if not verify_password(password, user.password):
+    if not verify_password(password, user.password_hash):
         return False
     return user
 

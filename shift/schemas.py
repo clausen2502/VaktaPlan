@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, Field, ConfigDict, field_validator, FieldValidationInfo
+from pydantic import BaseModel, Field, ConfigDict, field_validator, FieldValidationInfo, model_validator
 from .models import ShiftStatus
 
 class ShiftRead(BaseModel):
@@ -38,3 +38,20 @@ class ShiftCreateIn(BaseModel):
         if start and end <= start:
             raise ValueError("The end date must be after the start date!")
         return end
+
+class ShiftUpdateIn(BaseModel):
+    org_id: Optional[int] = None
+    location_id: Optional[int] = None
+    role_id: Optional[int] = None
+    start_at: Optional[datetime] = None
+    end_at: Optional[datetime] = None
+    status: Optional[ShiftStatus] = None
+    notes: Optional[str] = None
+
+    @model_validator(mode="after")
+    def check_dates_if_both_present(self):
+        # Only validate ordering if BOTH are provided.
+        if self.start_at is not None and self.end_at is not None:
+            if self.start_at >= self.end_at:
+                raise ValueError("start_at must be before end_at")
+        return self
