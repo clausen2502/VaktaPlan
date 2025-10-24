@@ -13,3 +13,7 @@ class Employee(Base):
 
     # optional link to login user
     user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+
+    # relationships
+    user = relationship("User", back_populates="employee")
+    org = relationship("Organization", back_populates="employees")

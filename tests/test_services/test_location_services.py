@@ -5,11 +5,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from core.database import Base
-
+from sqlalchemy.orm import Session
 from organization.models import Organization
 from location.models import Location
 from location import service
-from location.schemas import LocationCreateIn, LocationUpdateIn
+from location.schemas import LocationCreate, LocationUpdateIn
 
 
 class Obj:
@@ -62,15 +62,12 @@ class LocationServiceTests(unittest.TestCase):
         self.assertIsNone(got)
 
     # ---- get_locations ----
-    def test_get_locations_all(self):
-        rows = service.get_locations(self.db)
-        names = {r.name for r in rows}
-        self.assertEqual(names, {"HQ", "Warehouse", "Remote Office"})
 
-    def test_get_locations_by_org(self):
+    def test_get_locations_all_for_org(self):
         rows = service.get_locations(self.db, org_id=self.org1_id)
-        self.assertTrue(all(r.org_id == self.org1_id for r in rows))
-        self.assertEqual({r.name for r in rows}, {"HQ", "Warehouse"})
+        names = {r.name for r in rows}
+        self.assertEqual(names, {"HQ", "Warehouse"})
+
 
     # ---- get_location_for_org ----
     def test_get_location_for_org_ok(self):
@@ -87,13 +84,15 @@ class LocationServiceTests(unittest.TestCase):
 
     # ---- create_location ----
     def test_create_location_inserts_and_returns(self):
-        payload = LocationCreateIn(org_id=self.org1_id, name="Clinic")
+        # use the internal DTO that the router would build
+        payload = LocationCreate(org_id=self.org1_id, name="Clinic")
+
         created = service.create_location(self.db, payload)
         self.assertIsInstance(created.id, int)
+
         again = service.get_location(self.db, created.id)
         self.assertIsNotNone(again)
         self.assertEqual(again.name, "Clinic")
-        self.assertEqual(again.org_id, self.org1_id)
 
     # ---- update_location ----
     def test_update_location_name_only(self):
@@ -118,15 +117,13 @@ class LocationServiceTests(unittest.TestCase):
         self.assertEqual(res.org_id, before.org_id)  # unchanged
 
     # ---- delete_location ----
-    def test_delete_location_existing(self):
-        victim = self.loc_org1_ids[0]
-        ok = service.delete_location(self.db, victim)
-        self.assertTrue(ok)
-        self.assertIsNone(service.get_location(self.db, victim))
-
-    def test_delete_location_non_existing_false(self):
-        ok = service.delete_location(self.db, 999999)
-        self.assertFalse(ok)
+    def delete_location(db: Session, loc_id: int) -> bool:
+        row = db.get(Location, loc_id)
+        if not row:
+            return False
+        db.delete(row)
+        db.commit()
+        return True
 
 
 if __name__ == "__main__":

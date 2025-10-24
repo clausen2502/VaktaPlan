@@ -1,46 +1,39 @@
-from typing import List, Optional
+from typing import Optional, List
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from .models import Location
-from .schemas import LocationCreateIn, LocationUpdateIn
+from .schemas import LocationCreate, LocationUpdate
 
-def get_locations(db: Session, org_id: Optional[int] = None) -> List[Location]:
-    statement = select(Location).order_by(Location.name.asc())
-    if org_id is not None:
-        statement = statement.where(Location.org_id == org_id)
-    return list(db.scalars(statement))
+def get_locations(db: Session, *, org_id: int) -> List[Location]:
+    stmt = select(Location).where(Location.org_id == org_id).order_by(Location.name.asc())
+    return list(db.scalars(stmt))
 
 def get_location(db: Session, location_id: int) -> Optional[Location]:
     return db.get(Location, location_id)
 
-# Safer helper: fetch by id + org
 def get_location_for_org(db: Session, location_id: int, org_id: int) -> Optional[Location]:
-    statement = select(Location).where(Location.id == location_id, Location.org_id == org_id)
-    return db.scalars(statement).first()
+    stmt = select(Location).where(Location.id == location_id, Location.org_id == org_id)
+    return db.scalars(stmt).first()
 
-def create_location(db: Session, payload: LocationCreateIn) -> Location:
-    location = Location(org_id=payload.org_id, name=payload.name)
-    db.add(location)
+def create_location(db: Session, loc: LocationCreate) -> Location:
+    db_loc = Location(org_id=loc.org_id, name=loc.name)
+    db.add(db_loc)
     db.commit()
-    db.refresh(location)
-    return location
+    db.refresh(db_loc)
+    return db_loc
 
-def update_location(db: Session, location_id: int, payload: LocationUpdateIn) -> Optional[Location]:
-    location = db.get(Location, location_id)
-    if not location:
+def update_location(db: Session, location_id: int, patch: LocationUpdate) -> Optional[Location]:
+    db_loc = db.get(Location, location_id)
+    if not db_loc:
         return None
-    data = payload.model_dump(exclude_unset=True)
-    data.pop("org_id", None)  # org_id immutable
+    data = patch.model_dump(exclude_unset=True)
     for k, v in data.items():
-        setattr(location, k, v)
-    db.commit()
-    db.refresh(location)
-    return location
+        setattr(db_loc, k, v)
+    db.commit(); db.refresh(db_loc)
+    return db_loc
 
-def delete_location(db: Session, location_id: int) -> bool:
-    location = db.get(Location, location_id)
-    if not location:
-        return False
-    db.delete(location)
-    db.commit()
-    return True
+def delete_location(db: Session, location_id: int) -> None:
+    db_loc = db.get(Location, location_id)
+    if db_loc:
+        db.delete(db_loc); db.commit()
+    return

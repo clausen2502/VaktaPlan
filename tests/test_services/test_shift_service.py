@@ -13,6 +13,8 @@ from location.models import Location
 from shift.models import Shift, ShiftStatus
 from shift import service
 from shift.schemas import ShiftUpdateIn
+import models_bootstrap
+from role.models import JobRole
 
 
 class Obj:
@@ -86,7 +88,6 @@ class ShiftServiceTests(unittest.TestCase):
     def test_get_shifts_all(self):
         rows = service.get_shifts(self.db)
         self.assertEqual(len(rows), 3)
-        # ordered by start_at ascending
         self.assertTrue(rows[0].start_at <= rows[1].start_at <= rows[2].start_at)
 
     def test_get_shifts_location_filter(self):

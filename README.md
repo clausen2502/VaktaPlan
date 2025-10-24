@@ -1,5 +1,5 @@
 # VaktaPlan
-## FastAPI + SQLAlchemy 2 + Alembic + Postgresql
+## Built with FastAPI + SQLAlchemy 2 + Alembic + Postgresql
 
 ### Run server with:
 fastapi dev main.py
@@ -17,47 +17,98 @@ model.py         # SQLAlchemy: class Shift(Base)
 # Run instructions - curl commands
 BASE="http://127.0.0.1:8000"
 
-# Set login
-BASE="http://127.0.0.1:8000"
-EMAIL="johanna.inga@outlook.com"
-PASS="admin"
-
 # Get bearer token and login
-TOKEN=$(curl -sS -X POST "$BASE/api/auth/token" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=$EMAIL&password=$PASS" \
-  | python3 -c 'import sys,json; print(json.load(sys.stdin)["access_token"])')
+export BASE_URL="http://127.0.0.1:8000/api"
+export EMAIL="johanna.inga@outlook.com"
+export PASS="admin"
 
-echo "TOKEN=$TOKEN"
-set TOKEN= (input_token)
+export TOKEN=$(
+  curl -sS -X POST "$BASE_URL/auth/token" \
+    -H "Content-Type: application/x-www-form-urlencoded" \
+    -d "username=$EMAIL&password=$PASS" \
+  | python3 -c 'import sys,json; print(json.load(sys.stdin)["access_token"])'
+)
 
+## helper for curl
+auth() { echo "Authorization: Bearer $TOKEN"; }
+json='Content-Type: application/json'
+
+# Routes
+
+## User
+### List all users
+curl -sS "$BASE_URL/users"
+
+### Get current users
+curl -sS "$BASE_URL/users/me" -H "$(auth)"
+
+### Get user by id
+curl -sS "$BASE_URL/users/{user_id}"
+
+### Delete user by id
+curl -i -X DELETE "$BASE_URL/users/{user_id}"
+
+### Create a user
+curl -sS -X POST "$BASE_URL/users" -H "$json" \
+  -d '{"username":"alice","email":"alice@example.com","password":"secret"}'
+
+### Signup manager
+curl -sS -X POST "$BASE_URL/users/signup-manager" -H "$json" \
+  -d '{"org_name":"MyOrg","username":"manager","email":"manager@example.com","password":"admin"}'
 
 ## Shift
-### 1) Get shift with id=1
-curl -sS "$BASE/api/shifts/1"
 
-### 2) List all shifts
-curl -sS "$BASE/api/shifts/"
+### List shifts supports filters
 
-### 3) Create a new shift
-curl -sS -X POST "$BASE/api/shifts" \
-  -H "Content-Type: application/json" \
+Query params: location_id, status (draft|published), start, end, notes
+
+start/end are ISO8601 datetimes (TZ-aware)
+
+curl -sS "$BASE_URL/shifts" -H "$(auth)"
+curl -sS "$BASE_URL/shifts?status=published" -H "$(auth)"
+
+###  Get a shift by id
+curl -sS "$BASE_URL/shifts/{shift_id}" -H "$(auth)"
+
+###  Create a new shift
+curl -sS -X POST "$BASE_URL/shifts" -H "$json" -H "$(auth)" \
   -d '{
-    "org_id": 1,
     "location_id": 1,
     "role_id": 1,
     "start_at": "2025-10-18T09:00:00Z",
     "end_at":   "2025-10-18T17:00:00Z",
-    "status": "published",
-    "notes": "Demo shift 2"
+    "status": "draft",
+    "notes": "Front desk"
   }'
 
-### 4) Delete shift with id=2
-curl -i -X DELETE "$BASE/api/shifts/2"
 
-### 5) Update Shift example
-curl -X PATCH "$BASE/api/shifts/1" \
-  -H "Content-Type: application/json" \
-  -d '{"end_at":"2025-10-16T18:00:00Z"}'
+### Delete shift with id
+curl -i -X DELETE "$BASE_URL/shifts/{shift_id}" -H "$(auth)"
+
+
+###  Update Shift example
+curl -sS -X PATCH "$BASE_URL/shifts/1" -H "$json" -H "$(auth)" \
+  -d '{"end_at":"2025-10-18T18:00:00Z"}'
 
 ## Locations
+
+### List all locations
+curl -sS "$BASE_URL/locations" -H "$(auth)"
+
+### Get location by id
+curl -sS "$BASE_URL/locations/{location_id}" -H "$(auth)"
+
+### Create a new location
+curl -sS -X POST "$BASE_URL/locations" -H "$json" -H "$(auth)" \
+  -d '{"name":"Smáralind"}'
+
+###  Delete location with id
+curl -i -X DELETE "$BASE_URL/locations/{location_id}" -H "$(auth)"
+
+
+###  Update location name example
+curl -sS -X PATCH "$BASE_URL/locations/1" \
+  -H "$(auth)" \
+  -H "$json" \
+  -d '{"name":"Kringlan!"}'
+

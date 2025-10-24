@@ -73,7 +73,6 @@ class ShiftRouterTests(unittest.TestCase):
         )
 
         payload = {
-            "org_id": 1,  # must match caller's org
             "location_id": 1,
             "role_id": 1,
             "start_at": "2025-10-17T09:00:00Z",
@@ -96,8 +95,7 @@ class ShiftRouterTests(unittest.TestCase):
             "status": "draft",
         }
         resp = self.client.post("/api/shifts", json=payload)
-        self.assertEqual(resp.status_code, 403)
-        self.assertEqual(resp.json()["detail"], "Cannot create shift for another organization")
+        self.assertEqual(resp.status_code, 422)
 
     @patch("shift.router.service.create_shift")
     def test_post_422_on_end_before_start(self, mock_create_shift):

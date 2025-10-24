@@ -10,4 +10,5 @@ class Organization(Base):
     timezone: Mapped[str] = mapped_column(String(64), nullable=False)
 
     # relationships
-    members = relationship("OrgMember", back_populates="org", cascade="all, delete-orphan")
+    users = relationship("User", back_populates="org", cascade="all, delete") 
+    employees = relationship("Employee", back_populates="org", cascade="all, delete-orphan")

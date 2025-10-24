@@ -1,8 +1,9 @@
 from sqlalchemy.orm import Session
 
 from auth.utils.auth_utils import get_password_hash
+from organization.models import Organization
 from user.models import User
-from user.schemas import UserCreate
+from user.schemas import UserCreate, ManagerSignup
 
 
 def get_users(db: Session):
@@ -36,3 +37,20 @@ def delete_user(db: Session, user_id: int):
         db.delete(db_user)
         db.commit()
     return
+
+def signup_manager_with_org(db: Session, p: ManagerSignup) -> User:
+    org = Organization(name=p.org_name, timezone="GMT")
+    db.add(org)
+    db.flush()
+
+    user = User(
+        email=str(p.email),
+        username=p.username,
+        password_hash=get_password_hash(p.password),
+        org_id=org.id,
+        is_manager=True,
+        is_active=True)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
