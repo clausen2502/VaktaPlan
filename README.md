@@ -50,7 +50,7 @@ curl -i -X DELETE "$BASE_URL/users/{user_id}"
 
 ### Create a user
 curl -sS -X POST "$BASE_URL/users" -H "$json" \
-  -d '{"username":"alice","email":"alice@example.com","password":"secret"}'
+  -d '{"username":"alice","email":"isak@example.com","password":"admin"}'
 
 ### Signup manager
 curl -sS -X POST "$BASE_URL/users/signup-manager" -H "$json" \
