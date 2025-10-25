@@ -1,4 +1,3 @@
-# tests/test_services/test_location_service.py
 import unittest
 
 from sqlalchemy import create_engine

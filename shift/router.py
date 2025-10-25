@@ -5,14 +5,14 @@ from fastapi import APIRouter, Depends, Query, status, HTTPException
 from sqlalchemy.orm import Session
 from core.database import get_db
 from auth.services.auth_service import get_current_active_user
-from .schemas import ShiftRead, ShiftCreatePayload, ShiftCreateIn, ShiftUpdateIn
+from .schemas import ShiftSchema, ShiftCreatePayload, ShiftCreate, ShiftUpdate
 from .models import ShiftStatus
 from shift import service
 
 shift_router = APIRouter(prefix="/shifts", tags=["Shifts"])
 
 ## Get all shifts
-@shift_router.get("", response_model=list[ShiftRead])
+@shift_router.get("", response_model=list[ShiftSchema])
 def list_shifts(
     location_id: Optional[int] = None,
     status: Optional[ShiftStatus] = Query(None, description="draft|published"),
@@ -33,7 +33,7 @@ def list_shifts(
     )
 
 ## Get a shift by id
-@shift_router.get("/{shift_id}", response_model=ShiftRead)
+@shift_router.get("/{shift_id}", response_model=ShiftSchema)
 def get_shift(shift_id: int, db: Session = Depends(get_db), user = Depends(get_current_active_user)):
     obj = service.get_shift_for_org(db, shift_id, user.org_id)
     if not obj:
@@ -41,14 +41,14 @@ def get_shift(shift_id: int, db: Session = Depends(get_db), user = Depends(get_c
     return obj
 
 # Create a shift
-@shift_router.post("", response_model=ShiftRead, status_code=status.HTTP_201_CREATED)
+@shift_router.post("", response_model=ShiftSchema, status_code=status.HTTP_201_CREATED)
 def create_shift(payload: ShiftCreatePayload, db: Session = Depends(get_db), user = Depends(get_current_active_user)):
-    internal = ShiftCreateIn(org_id=user.org_id, **payload.model_dump())
+    internal = ShiftCreate(org_id=user.org_id, **payload.model_dump())
     return service.create_shift(db, internal)
 
 # Update shift
-@shift_router.patch("/{shift_id}", response_model=ShiftRead)
-def patch_shift(shift_id: int, payload: ShiftUpdateIn, db: Session = Depends(get_db), user = Depends(get_current_active_user)):
+@shift_router.patch("/{shift_id}", response_model=ShiftSchema)
+def patch_shift(shift_id: int, payload: ShiftUpdate, db: Session = Depends(get_db), user = Depends(get_current_active_user)):
     if not service.get_shift_for_org(db, shift_id, user.org_id):
         raise HTTPException(status_code=404, detail="Shift not found")
     return service.update_shift(db, shift_id, payload)

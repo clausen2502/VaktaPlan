@@ -3,7 +3,7 @@ from typing import Optional
 from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
 from .models import ShiftStatus
 
-class ShiftRead(BaseModel):
+class ShiftSchema(BaseModel):
     id: int
     org_id: int
     location_id: Optional[int] = None
@@ -15,7 +15,7 @@ class ShiftRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-# PUBLIC body (no org_id)
+# PUBLIC payload, what clients send
 class ShiftCreatePayload(BaseModel):
     location_id: Optional[int] = None
     role_id: Optional[int] = None
@@ -40,7 +40,7 @@ class ShiftCreatePayload(BaseModel):
 
 
 # INTERNAL DTO for the service
-class ShiftCreateIn(BaseModel):
+class ShiftCreate(BaseModel):
     org_id: int
     location_id: Optional[int] = None
     role_id: Optional[int] = None
@@ -50,7 +50,7 @@ class ShiftCreateIn(BaseModel):
     notes: Optional[str] = None
 
 
-class ShiftUpdateIn(BaseModel):
+class ShiftUpdate(BaseModel):
     location_id: Optional[int] = None
     role_id: Optional[int] = None
     start_at: Optional[datetime] = None

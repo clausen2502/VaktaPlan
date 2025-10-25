@@ -29,11 +29,13 @@ def update_location(db: Session, location_id: int, patch: LocationUpdate) -> Opt
     data = patch.model_dump(exclude_unset=True)
     for k, v in data.items():
         setattr(db_loc, k, v)
-    db.commit(); db.refresh(db_loc)
+    db.commit()
+    db.refresh(db_loc)
     return db_loc
 
 def delete_location(db: Session, location_id: int) -> None:
     db_loc = db.get(Location, location_id)
     if db_loc:
-        db.delete(db_loc); db.commit()
+        db.delete(db_loc)
+        db.commit()
     return
