@@ -112,3 +112,21 @@ curl -sS -X PATCH "$BASE_URL/locations/1" \
   -H "$json" \
   -d '{"name":"Kringlan!"}'
 
+## Employees
+
+### List all employees
+curl -sS "$BASE_URL/employees" -H "$(auth)"
+
+### Get employee by id
+curl -sS "$BASE_URL/employees/{employee_id}" -H "$(auth)"
+
+### Create a new employee
+curl -sS -X POST "$BASE_URL/employees" -H "$json" -H "$(auth)" \
+  -d '{"display_name":"Jonas"}'
+
+### Delete employee with id
+curl -i -X DELETE "$BASE_URL/employees/{employee_id}" -H "$(auth)"
+
+### Update employee
+curl -sS -X PATCH "$BASE_URL/employees/{employee_id}" -H "$json" -H "$(auth)" \
+  -d '{"display_name":"Jonas H."}'

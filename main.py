@@ -7,6 +7,7 @@ from user.router import user_router
 from shift.router import shift_router
 from location.router import location_router
 from employee.router import employee_router
+from preference.router import pref_router
 import models_bootstrap 
 
 openapi_tags = [
@@ -37,7 +38,9 @@ app.include_router(auth_router, prefix="/api")
 app.include_router(user_router, prefix="/api")
 app.include_router(shift_router, prefix="/api")
 app.include_router(location_router, prefix="/api")
+app.include_router(pref_router, prefix="/api")
 app.include_router(employee_router, prefix="/api")
+
 
 @app.get("/health", tags=['Health Checks'])
 def read_root():

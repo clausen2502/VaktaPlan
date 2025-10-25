@@ -20,6 +20,3 @@ class LocationCreate(BaseModel):
 
 class LocationUpdate(BaseModel):
     name: Optional[str] = None
-
-class LocationCreateIn(LocationCreatePayload): pass ## for testing purposes
-class LocationUpdateIn(LocationUpdate): pass ## for testing purposes

@@ -22,7 +22,7 @@ class Preference(Base):
     location_id: Mapped[int | None] = mapped_column(
         ForeignKey("locations.id", ondelete="SET NULL"), nullable=True, index=True)
 
-    weight: Mapped[int | None] = mapped_column(Integer, nullable=True)  # e.g., 0..5
+    weight: Mapped[int | None] = mapped_column(Integer, nullable=True)
     do_not_schedule: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     
     notes: Mapped[str | None] = mapped_column(Text(), nullable=True)
