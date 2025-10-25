@@ -75,7 +75,7 @@ def update_preference(
     ):
     if not service.get_preference_for_org(db, preference_id, user.org_id):
         raise HTTPException(status_code=404, detail="preference not found")
-    return service.update_preference(db, preference_id, payload)
+    return service.update_preference(db, preference_id, payload, org_id=user.org_id)
 
 # Delete a preference (manager only)
 @pref_router.delete("/{preference_id}")

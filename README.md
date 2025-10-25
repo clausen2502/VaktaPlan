@@ -14,10 +14,7 @@ service.py       # Orchestration: DB session, repos, logic calls
 logic.py         # Domain: validate_window, detect_conflicts, compute_payable
 model.py         # SQLAlchemy: class Shift(Base)
 
-# Run instructions - curl commands
-BASE="http://127.0.0.1:8000"
-
-# Get bearer token and login
+# Instructions: get bearer token and login
 export BASE_URL="http://127.0.0.1:8000/api"
 export EMAIL="johanna.inga@outlook.com"
 export PASS="admin"
@@ -26,8 +23,7 @@ export TOKEN=$(
   curl -sS -X POST "$BASE_URL/auth/token" \
     -H "Content-Type: application/x-www-form-urlencoded" \
     -d "username=$EMAIL&password=$PASS" \
-  | python3 -c 'import sys,json; print(json.load(sys.stdin)["access_token"])'
-)
+  | python3 -c 'import sys,json; print(json.load(sys.stdin)["access_token"])')
 
 ## helper for curl
 auth() { echo "Authorization: Bearer $TOKEN"; }
@@ -81,7 +77,6 @@ curl -sS -X POST "$BASE_URL/shifts" -H "$json" -H "$(auth)" \
     "notes": "Front desk"
   }'
 
-
 ### Delete shift with id
 curl -i -X DELETE "$BASE_URL/shifts/{shift_id}" -H "$(auth)"
 
@@ -104,7 +99,6 @@ curl -sS -X POST "$BASE_URL/locations" -H "$json" -H "$(auth)" \
 
 ###  Delete location with id
 curl -i -X DELETE "$BASE_URL/locations/{location_id}" -H "$(auth)"
-
 
 ###  Update location name example
 curl -sS -X PATCH "$BASE_URL/locations/1" \
@@ -130,3 +124,53 @@ curl -i -X DELETE "$BASE_URL/employees/{employee_id}" -H "$(auth)"
 ### Update employee
 curl -sS -X PATCH "$BASE_URL/employees/{employee_id}" -H "$json" -H "$(auth)" \
   -d '{"display_name":"Jonas H."}'
+
+## Preferences
+
+# A Preference can be:
+# - Soft preference (do_not_schedule=false) with optional weight of the preference from 0-5.
+# - Weight is used to help create a suggestion schedule.
+# - Hard block (do_not_schedule=true) where weight is ignored.
+# - Optional active window that limits when the preference applies (YYYY-MM-DD).
+
+### List preferences (org-scoped; optionally filter by employee_id)
+curl -sS "$BASE_URL/preferences" -H "$(auth)"
+curl -sS "$BASE_URL/preferences?employee_id=1" -H "$(auth)"
+
+### Get preference by id
+curl -sS "$BASE_URL/preferences/{preference_id}" -H "$(auth)"
+
+### Create preference
+curl -sS -X POST "$BASE_URL/preferences" -H "$json" -H "$(auth)" \
+  -d '{
+    "employee_id": 1,
+    "weekday": 2,
+    "start_time": "09:00:00",
+    "end_time": "13:00:00",
+    "location_id": 1,
+    "weight": 4,
+    "do_not_schedule": false,
+    "notes": "Loves morning shifts",
+    "active_start": "2025-10-01",
+    "active_end": "2025-12-31"
+  }'
+
+### Create preference (hard block)
+curl -sS -X POST "$BASE_URL/preferences" -H "$json" -H "$(auth)" \
+  -d '{
+    "employee_id": 1,
+    "weekday": 3,
+    "start_time": "09:00:00",
+    "end_time": "11:00:00",
+    "do_not_schedule": true,
+    "notes": "In school on Wednesdays",
+    "active_start": "2025-10-02",
+    "active_end": "2025-12-20"
+  }'
+
+### Update preference (example: flip to hard block)
+curl -sS -X PATCH "$BASE_URL/preferences/{preference_id}" -H "$json" -H "$(auth)" \
+  -d '{"do_not_schedule": true, "weight": null}'
+
+### Delete preference
+curl -i -X DELETE "$BASE_URL/preferences/{preference_id}" -H "$(auth)"
