@@ -12,7 +12,7 @@ from organization.models import Organization
 from location.models import Location
 from shift.models import Shift, ShiftStatus
 from shift import service
-from shift.schemas import ShiftUpdateIn
+from shift.schemas import ShiftUpdate
 import models_bootstrap
 from role.models import JobRole
 
@@ -150,7 +150,7 @@ class ShiftServiceTests(unittest.TestCase):
         before = service.get_shift(self.db, shift_id)
         new_end = before.end_at + timedelta(hours=1)
 
-        patch = ShiftUpdateIn(end_at=new_end)
+        patch = ShiftUpdate(end_at=new_end)
         after = service.update_shift(self.db, shift_id, patch)
 
         assert after.id == shift_id
@@ -162,7 +162,7 @@ class ShiftServiceTests(unittest.TestCase):
 
     def test_update_shift_notes_only(self):
         shift_id = self.ids[1]
-        patch = ShiftUpdateIn(notes="updated notes")
+        patch = ShiftUpdate(notes="updated notes")
         after = service.update_shift(self.db, shift_id, patch)
         assert after.notes == "updated notes"
 
@@ -174,14 +174,14 @@ class ShiftServiceTests(unittest.TestCase):
         bad_start = current.end_at + timedelta(hours=1)
 
         # Construct WITHOUT validation so we can hit the service-level guard
-        patch = ShiftUpdateIn.model_construct(start_at=bad_start)
+        patch = ShiftUpdate.model_construct(start_at=bad_start)
 
         with self.assertRaises(HTTPException) as cm:
             service.update_shift(self.db, shift_id, patch)
         self.assertEqual(cm.exception.status_code, 422)
 
     def test_update_shift_not_found_404(self):
-        patch = ShiftUpdateIn(notes="doesn't matter")
+        patch = ShiftUpdate(notes="doesn't matter")
         with self.assertRaises(HTTPException) as cm:
             service.update_shift(self.db, 999999, patch)
         assert cm.exception.status_code == 404

@@ -11,7 +11,6 @@ class Employee(Base):
 
     display_name: Mapped[str] = mapped_column(String(255), nullable=False)
 
-    # optional link to login user
     user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
 
     # relationships

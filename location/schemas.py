@@ -13,7 +13,7 @@ class LocationCreatePayload(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-# INTERNAL DTO the service uses (router injects org_id)
+# INTERNAL DTO for the service 
 class LocationCreate(BaseModel):
     org_id: int
     name: str

@@ -2,11 +2,13 @@ import unittest
 from types import SimpleNamespace as Obj
 from unittest.mock import patch
 from fastapi.testclient import TestClient
+from sqlalchemy.exc import IntegrityError
+
 
 from main import app
 from core.database import get_db
 from auth.services.auth_service import get_current_active_user
-from authz.deps import require_manager, require_member
+from authz.deps import require_manager
 
 
 class LocationRouterTests(unittest.TestCase):
@@ -62,9 +64,7 @@ class LocationRouterTests(unittest.TestCase):
     @patch("location.router.service.create_location")
     def test_create_location_409_duplicate_name(self, mock_create):
         # Simulate unique constraint violation
-        from sqlalchemy.exc import IntegrityError
-        app.dependency_overrides[require_manager] = lambda: 1
-
+        
         mock_create.side_effect = IntegrityError("stmt", "params", Exception("dup"))
 
         resp = self.client.post("/api/locations", json={"name": "Clinic"})
