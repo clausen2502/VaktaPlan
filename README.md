@@ -264,25 +264,57 @@ curl -sS -X PATCH "$BASE_URL/unavailability/{unavail_id}" \
 ## Delete unavailability
 curl -i -X DELETE "$BASE_URL/unavailability/{unavail_id}" -H "$(auth)"
 
-## Assignments
+# Assignments
 
-# List (optionally filter by shift_id or employee_id)
+## List (optionally filter by shift_id or employee_id)
 curl -sS "$BASE_URL/assignments" -H "$(auth)"
 curl -sS "$BASE_URL/assignments?shift_id=1" -H "$(auth)"
 curl -sS "$BASE_URL/assignments?employee_id=1" -H "$(auth)"
 
-# Get by composite id
+## Get by composite id
 curl -sS "$BASE_URL/assignments/{shift_id}/{employee_id}" -H "$(auth)"
 
-# Create (manager only)
+## Create (manager only)
 curl -sS -X POST "$BASE_URL/assignments" \
   -H "$json" -H "$(auth)" \
   -d '{"shift_id": 1, "employee_id": 1, "preference_score": 4}'
 
-# Update (manager only, only preference_score is editable)
+## Update (manager only, only preference_score is editable)
 curl -sS -X PATCH "$BASE_URL/assignments/1/1" \
   -H "$json" -H "$(auth)" \
   -d '{"preference_score": 5}'
 
 # Delete (manager only)
 curl -i -X DELETE "$BASE_URL/assignments/{shift_id}/{employee_id}" -H "$(auth)"
+
+# Publications (publish a shift)
+
+## List publications - optional filters
+curl -sS "$BASE_URL/publications" -H "$(auth)"
+
+### Covering a specific date
+curl -sS "$BASE_URL/publications?active_on=2025-10-03" -H "$(auth)"
+
+### Starting on/after a date
+curl -sS "$BASE_URL/publications?start_from=2025-10-01" -H "$(auth)"
+
+### Ending on/before a date
+curl -sS "$BASE_URL/publications?end_to=2025-10-31" -H "$(auth)"
+
+### Combine filters
+curl -sS "$BASE_URL/publications?start_from=2025-10-01&end_to=2025-10-31" -H "$(auth)"
+
+## Get a publication by id
+curl -sS "$BASE_URL/publications/{publication_id}" -H "$(auth)"
+
+## Create a publication
+curl -sS -X POST "$BASE_URL/publications" \
+  -H "$json" -H "$(auth)" \
+  -d '{
+    "range_start": "2025-10-01",
+    "range_end":   "2025-10-07",
+    "version": 2
+  }'
+
+## Delete a publication
+curl -i -X DELETE "$BASE_URL/publications/{publication_id}" -H "$(auth)"
