@@ -35,7 +35,7 @@ json='Content-Type: application/json'
 ### List all users
 curl -sS "$BASE_URL/users"
 
-### Get current users
+### Get current user
 curl -sS "$BASE_URL/users/me" -H "$(auth)"
 
 ### Get user by id
@@ -232,3 +232,57 @@ curl -i -X DELETE "$BASE_URL/organizations/{org_id}" -H "$(auth)"
 ## Delete your own organization
 curl -i -X DELETE "$BASE_URL/organizations/me" \
   -H "$(auth)"
+
+# Unavailability
+
+## List unavailability (optionally filter by employee)
+curl -sS "$BASE_URL/unavailability" -H "$(auth)"
+curl -sS "$BASE_URL/unavailability?employee_id=1" -H "$(auth)"
+
+## Get unavailability by id
+curl -sS "$BASE_URL/unavailability/{unavail_id}" -H "$(auth)"
+
+## Create unavailability
+curl -sS -X POST "$BASE_URL/unavailability" \
+  -H "$json" -H "$(auth)" \
+  -d '{
+    "employee_id": 1,
+    "start_at": "2025-10-22T09:00:00Z",
+    "end_at":   "2025-10-22T11:00:00Z",
+    "reason": "Tannlæknir"
+  }'
+
+## Update unavailability
+curl -sS -X PATCH "$BASE_URL/unavailability/{unavail_id}" \
+  -H "$json" -H "$(auth)" \
+  -d '{
+    "start_at": "2025-10-22T10:00:00Z",
+    "end_at":   "2025-10-22T12:00:00Z",
+    "reason": "Sike ekki tannlæknir"
+  }'
+
+## Delete unavailability
+curl -i -X DELETE "$BASE_URL/unavailability/{unavail_id}" -H "$(auth)"
+
+## Assignments
+
+# List (optionally filter by shift_id or employee_id)
+curl -sS "$BASE_URL/assignments" -H "$(auth)"
+curl -sS "$BASE_URL/assignments?shift_id=1" -H "$(auth)"
+curl -sS "$BASE_URL/assignments?employee_id=1" -H "$(auth)"
+
+# Get by composite id
+curl -sS "$BASE_URL/assignments/{shift_id}/{employee_id}" -H "$(auth)"
+
+# Create (manager only)
+curl -sS -X POST "$BASE_URL/assignments" \
+  -H "$json" -H "$(auth)" \
+  -d '{"shift_id": 1, "employee_id": 1, "preference_score": 4}'
+
+# Update (manager only, only preference_score is editable)
+curl -sS -X PATCH "$BASE_URL/assignments/1/1" \
+  -H "$json" -H "$(auth)" \
+  -d '{"preference_score": 5}'
+
+# Delete (manager only)
+curl -i -X DELETE "$BASE_URL/assignments/{shift_id}/{employee_id}" -H "$(auth)"
