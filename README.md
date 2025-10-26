@@ -127,10 +127,9 @@ curl -sS -X PATCH "$BASE_URL/employees/{employee_id}" -H "$json" -H "$(auth)" \
 
 ## Preferences
 
-# - Soft preference (do_not_schedule=false) with optional weight of the preference from 0-5.
-# - Weight is used to help create a suggestion schedule.
-# - Hard block (do_not_schedule=true) where weight is ignored.
-# - Optional active window that limits when the preference applies (YYYY-MM-DD).
+### - Weight is used to help create a suggestion schedule.
+### - Hard block (do_not_schedule=true) where weight is ignored.
+### - Optional active window that limits when the preference applies (YYYY-MM-DD).
 
 ### List preferences (org-scoped; optionally filter by employee_id)
 curl -sS "$BASE_URL/preferences" -H "$(auth)"
