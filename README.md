@@ -127,7 +127,6 @@ curl -sS -X PATCH "$BASE_URL/employees/{employee_id}" -H "$json" -H "$(auth)" \
 
 ## Preferences
 
-# A Preference can be:
 # - Soft preference (do_not_schedule=false) with optional weight of the preference from 0-5.
 # - Weight is used to help create a suggestion schedule.
 # - Hard block (do_not_schedule=true) where weight is ignored.
@@ -174,3 +173,62 @@ curl -sS -X PATCH "$BASE_URL/preferences/{preference_id}" -H "$json" -H "$(auth)
 
 ### Delete preference
 curl -i -X DELETE "$BASE_URL/preferences/{preference_id}" -H "$(auth)"
+
+## Job Roles
+
+## List job roles
+curl -sS "$BASE_URL/jobroles" -H "$(auth)"
+
+## Get job role by id
+curl -sS "$BASE_URL/jobroles/{jobrole_id}" -H "$(auth)"
+
+## Create job role
+curl -sS -X POST "$BASE_URL/jobroles" \
+  -H "$json" -H "$(auth)" \
+  -d '{"name":"Starfsmaður á kassa"}'
+
+## Update job role
+curl -sS -X PATCH "$BASE_URL/jobroles/{jobrole_id}" \
+  -H "$json" -H "$(auth)" \
+  -d '{"name":"Yfirmaður Kringlunnar"}'
+
+## Delete job role
+curl -i -X DELETE "$BASE_URL/jobroles/{jobrole_id}" -H "$(auth)"
+
+# Organization
+
+## Get your own organization details
+curl -sS "$BASE_URL/organizations/me" -H "$(auth)"
+
+## List all organizations
+curl -sS "$BASE_URL/organizations" -H "$(auth)"
+
+## Get organization by id
+curl -sS "$BASE_URL/organizations/{org_id}" -H "$(auth)"
+
+## Create organization
+curl -sS -X POST "$BASE_URL/organizations" \
+  -H "$json" -H "$(auth)" \
+  -d '{"name":"Dominos"}'
+
+## helper to set your org_id
+export MY_ORG_ID=$(
+  curl -sS "$BASE_URL/organizations/me" -H "$(auth)" \
+  | python3 -c 'import sys,json; print(json.load(sys.stdin)["id"])'
+)
+
+## Update organization with your id
+curl -sS -X PATCH "$BASE_URL/organizations/{org_id}" \
+  -H "$json" -H "$(auth)" \
+  -d '{"name":"Domino's"}'
+### or
+curl -sS -X PATCH "$BASE_URL/organizations/$MY_ORG_ID" \
+  -H "$json" -H "$(auth)" \
+  -d "{\"name\":\"Domino's\"}"
+
+## Delete organization
+curl -i -X DELETE "$BASE_URL/organizations/{org_id}" -H "$(auth)"
+
+## Delete your own organization
+curl -i -X DELETE "$BASE_URL/organizations/me" \
+  -H "$(auth)"

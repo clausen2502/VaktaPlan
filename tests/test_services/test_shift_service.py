@@ -14,7 +14,7 @@ from shift.models import Shift, ShiftStatus
 from shift import service
 from shift.schemas import ShiftUpdate
 import models_bootstrap
-from role.models import JobRole
+from jobrole.models import JobRole
 
 
 class Obj:

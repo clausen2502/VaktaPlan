@@ -1,5 +1,5 @@
 from __future__ import annotations
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, ForeignKey, UniqueConstraint
 from core.database import Base
 
@@ -13,3 +13,6 @@ class Location(Base):
     __table_args__ = (
         UniqueConstraint("org_id", "name", name="uq_location_org_name"),  # no duplicate names per organization
     )
+
+    # relationships
+    org = relationship("Organization", back_populates="locations")

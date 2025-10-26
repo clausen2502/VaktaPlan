@@ -109,11 +109,10 @@ class LocationServiceTests(unittest.TestCase):
     def test_update_location_ignores_org_id_mutation(self):
         target = self.loc_org1_ids[1]
         before = service.get_location(self.db, target)
-        # Attempt to move to another org via payload (should be ignored)
         res = service.update_location(self.db, target, LocationUpdate(org_id=self.org2_id, name="Warehouse East"))
         self.assertIsNotNone(res)
         self.assertEqual(res.name, "Warehouse East")
-        self.assertEqual(res.org_id, before.org_id)  # unchanged
+        self.assertEqual(res.org_id, before.org_id)
 
     # ---- delete_location ----
     def delete_location(db: Session, loc_id: int) -> bool:
