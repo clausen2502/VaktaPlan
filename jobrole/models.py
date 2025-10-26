@@ -1,5 +1,5 @@
 from __future__ import annotations
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, ForeignKey, UniqueConstraint
 from core.database import Base
 
@@ -13,3 +13,7 @@ class JobRole(Base):
     __table_args__ = (
         UniqueConstraint("org_id", "name", name="uq_jobrole_org_name"),
     )
+
+    #relationship
+    org = relationship("Organization", back_populates="jobroles")
+

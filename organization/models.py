@@ -12,3 +12,5 @@ class Organization(Base):
     # relationships
     users = relationship("User", back_populates="org", cascade="all, delete") 
     employees = relationship("Employee", back_populates="org", cascade="all, delete-orphan")
+    locations = relationship("Location", back_populates="org", cascade="all, delete-orphan")
+    jobroles = relationship("JobRole", back_populates="org", cascade="all, delete-orphan")

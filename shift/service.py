@@ -69,9 +69,9 @@ def update_shift(db: Session, shift_id: int, patch: ShiftUpdate) -> Shift:
     new_start = data.get("start_at", db_shift.start_at)
     new_end   = data.get("end_at",   db_shift.end_at)
 
-    # validation
+    # validation on new start and end date
     if new_start is not None and new_end is not None and new_start >= new_end:
-        raise HTTPException(status_code=422, detail="start_at must be before end_at")
+        raise HTTPException(status_code=422, detail="start at must be before end at")
 
     for k, v in data.items():
         setattr(db_shift, k, v)

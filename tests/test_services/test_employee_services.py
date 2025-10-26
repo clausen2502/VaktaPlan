@@ -21,7 +21,6 @@ class employeeServiceTests(unittest.TestCase):
     def setUp(self):
         # Fresh in-memory DB
         self.engine = create_engine("sqlite:///:memory:", future=True)
-        # IMPORTANT: models must be imported before create_all so tables exist
         Base.metadata.create_all(self.engine)
 
         TestingSession = sessionmaker(bind=self.engine, future=True)

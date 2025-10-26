@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from organization.models import Organization
 from location.models import Location
 from location import service
-from location.schemas import LocationCreate, LocationUpdateIn
+from location.schemas import LocationCreate, LocationUpdate
 
 
 class Obj:
@@ -96,24 +96,23 @@ class LocationServiceTests(unittest.TestCase):
     # ---- update_location ----
     def test_update_location_name_only(self):
         target = self.loc_org1_ids[0]
-        updated = service.update_location(self.db, target, LocationUpdateIn(name="HQ North"))
+        updated = service.update_location(self.db, target, LocationUpdate(name="HQ North"))
         self.assertIsNotNone(updated)
         self.assertEqual(updated.name, "HQ North")
         # org_id should remain unchanged
         self.assertEqual(updated.org_id, self.org1_id)
 
     def test_update_location_not_found_returns_none(self):
-        res = service.update_location(self.db, 999999, LocationUpdateIn(name="X"))
+        res = service.update_location(self.db, 999999, LocationUpdate(name="X"))
         self.assertIsNone(res)
 
     def test_update_location_ignores_org_id_mutation(self):
         target = self.loc_org1_ids[1]
         before = service.get_location(self.db, target)
-        # Attempt to move to another org via payload (should be ignored)
-        res = service.update_location(self.db, target, LocationUpdateIn(org_id=self.org2_id, name="Warehouse East"))
+        res = service.update_location(self.db, target, LocationUpdate(org_id=self.org2_id, name="Warehouse East"))
         self.assertIsNotNone(res)
         self.assertEqual(res.name, "Warehouse East")
-        self.assertEqual(res.org_id, before.org_id)  # unchanged
+        self.assertEqual(res.org_id, before.org_id)
 
     # ---- delete_location ----
     def delete_location(db: Session, loc_id: int) -> bool:
