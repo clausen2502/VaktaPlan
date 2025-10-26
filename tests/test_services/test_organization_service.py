@@ -5,13 +5,8 @@ from fastapi import HTTPException
 
 from core.database import Base
 from organization.models import Organization
-from organization.service import (
-    list_organizations,
-    get_organization,
-    create_organization,
-    update_organization,
-    delete_organization,
-)
+from organization.service import list_organizations, get_organization, create_organization, update_organization, delete_organization
+
 from organization.schema import OrganizationCreate, OrganizationUpdate
 
 
