@@ -1,18 +1,19 @@
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, date
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from core.database import Base
 
-# Import models the service relies on so Base.metadata has them
+from fastapi import HTTPException
 from organization.models import Organization
 from location.models import Location
 from jobrole.models import JobRole
 from employee.models import Employee
 from shift.models import Shift
 from assignment.models import Assignment
+from schedule.models import Schedule, ScheduleStatus
 
 # Service + DTOs under test
 from assignment import service
@@ -48,33 +49,57 @@ class AssignmentServiceTests(unittest.TestCase):
         self.db.add_all([self.emp1_o1, self.emp2_o1, self.emp1_o2])
         self.db.flush()
 
+        # ---- Seed schedules (required by Shift FK) ----
+        sched1 = Schedule(
+            org_id=self.org1.id,
+            range_start=date(2025, 10, 1),
+            range_end=date(2025, 10, 31),
+            version=1,
+            status=ScheduleStatus.draft,
+            created_by=None,
+            published_at=None,
+        )
+        sched2 = Schedule(
+            org_id=self.org2.id,
+            range_start=date(2025, 10, 1),
+            range_end=date(2025, 10, 31),
+            version=1,
+            status=ScheduleStatus.draft,
+            created_by=None,
+            published_at=None,
+        )
+        self.db.add_all([sched1, sched2])
+        self.db.flush()
+        self.schedule1_id = sched1.id
+        self.schedule2_id = sched2.id
+
         # ---- Seed shifts ----
         now = datetime(2025, 10, 1, 9, 0, tzinfo=timezone.utc)
         self.sh1_o1 = Shift(
             org_id=self.org1.id,
+            schedule_id=self.schedule1_id,
             location_id=self.loc1.id,
             role_id=self.role1.id,
             start_at=now,
             end_at=now + timedelta(hours=8),
-            status="draft",
             notes=None,
         )
         self.sh2_o1 = Shift(
             org_id=self.org1.id,
+            schedule_id=self.schedule1_id,
             location_id=self.loc1.id,
             role_id=self.role1.id,
             start_at=now + timedelta(days=1),
             end_at=now + timedelta(days=1, hours=8),
-            status="draft",
             notes=None,
         )
         self.sh1_o2 = Shift(
             org_id=self.org2.id,
+            schedule_id=self.schedule2_id,
             location_id=self.loc2.id,
             role_id=self.role2.id,
             start_at=now,
             end_at=now + timedelta(hours=6),
-            status="draft",
             notes=None,
         )
         self.db.add_all([self.sh1_o1, self.sh2_o1, self.sh1_o2])
@@ -95,6 +120,7 @@ class AssignmentServiceTests(unittest.TestCase):
     def tearDown(self):
         self.db.close()
         self.engine.dispose()
+
 
     # -------------- LIST ----------------
 
@@ -148,12 +174,11 @@ class AssignmentServiceTests(unittest.TestCase):
 
     def test_create_assignment_404_if_shift_wrong_org(self):
         # shift from org2 with org1 payload => 404
-        from fastapi import HTTPException
 
         dto = AssignmentCreate(
             org_id=self.org1_id,
-            shift_id=self.sh1_o2.id,        # belongs to org2
-            employee_id=self.emp1_o1.id,    # org1
+            shift_id=self.sh1_o2.id,
+            employee_id=self.emp1_o1.id,
             preference_score=None,
         )
         with self.assertRaises(HTTPException) as cm:
@@ -163,8 +188,6 @@ class AssignmentServiceTests(unittest.TestCase):
 
     def test_create_assignment_404_if_employee_wrong_org(self):
         # employee from org2 with org1 payload => 404
-        from fastapi import HTTPException
-
         dto = AssignmentCreate(
             org_id=self.org1_id,
             shift_id=self.sh1_o1.id,        # org1

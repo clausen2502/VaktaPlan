@@ -10,11 +10,11 @@ from core.database import Base
 
 from organization.models import Organization
 from location.models import Location
-from shift.models import Shift, ShiftStatus
+from schedule.models import Schedule, ScheduleStatus
+from shift.models import Shift
 from shift import service
 from shift.schemas import ShiftUpdate
 import models_bootstrap
-from jobrole.models import JobRole
 
 
 class Obj:
@@ -33,8 +33,8 @@ class ShiftServiceTests(unittest.TestCase):
         TestingSession = sessionmaker(bind=self.engine, future=True)
         self.db = TestingSession()
 
-        # --- seed org & location (satisfy NOT NULLs) ---
-        org = Organization(name="Test Org", timezone="Atlantic/Reykjavik")  # NOT NULL
+        # --- seed org & location ---
+        org = Organization(name="Test Org", timezone="Atlantic/Reykjavik")
         self.db.add(org)
         self.db.flush()  # populate org.id
         self.org_id = org.id
@@ -44,24 +44,48 @@ class ShiftServiceTests(unittest.TestCase):
         self.db.flush()  # populate loc.id
         self.location_id = loc.id
 
+        # --- seed a schedule (required by FK on shifts) ---
+        sched = Schedule(
+            org_id=self.org_id,
+            range_start=datetime(2025, 10, 16, tzinfo=timezone.utc).date(),
+            range_end=datetime(2025, 10, 20, tzinfo=timezone.utc).date(),
+            version=1,
+            status=ScheduleStatus.draft,
+            created_by=None,
+            published_at=None,
+        )
+        self.db.add(sched)
+        self.db.flush()
+        self.schedule_id = sched.id
+
         # --- seed a few shifts you can query in tests ---
         base = datetime(2025, 10, 16, 9, 0, tzinfo=timezone.utc)
         s1 = Shift(
-            org_id=self.org_id, location_id=self.location_id, role_id=1,
-            start_at=base, end_at=base + timedelta(hours=8),
-            status=ShiftStatus.draft, notes="front desk"
+            org_id=self.org_id,
+            schedule_id=self.schedule_id,
+            location_id=self.location_id,
+            role_id=1,
+            start_at=base,
+            end_at=base + timedelta(hours=8),
+            notes="front desk",
         )
         s2 = Shift(
-            org_id=self.org_id, location_id=self.location_id, role_id=1,
+            org_id=self.org_id,
+            schedule_id=self.schedule_id,
+            location_id=self.location_id,
+            role_id=1,
             start_at=base + timedelta(days=1),
             end_at=base + timedelta(days=1, hours=8),
-            status=ShiftStatus.published, notes="mid shift"
+            notes="mid shift",
         )
         s3 = Shift(
-            org_id=self.org_id, location_id=self.location_id, role_id=2,
+            org_id=self.org_id,
+            schedule_id=self.schedule_id,
+            location_id=self.location_id,
+            role_id=2,
             start_at=base + timedelta(days=2),
             end_at=base + timedelta(days=2, hours=8),
-            status=ShiftStatus.published, notes="back office"
+            notes="back office",
         )
         self.db.add_all([s1, s2, s3])
         self.db.commit()
@@ -95,10 +119,10 @@ class ShiftServiceTests(unittest.TestCase):
         self.assertTrue(all(r.location_id == self.location_id for r in rows))
         self.assertEqual(len(rows), 3)
 
-    def test_get_shifts_status_filter(self):
-        rows = service.get_shifts(self.db, status=ShiftStatus.published)
-        self.assertTrue(all(r.status == ShiftStatus.published for r in rows))
-        self.assertEqual(len(rows), 2)
+    def test_get_shifts_schedule_filter(self):
+        rows = service.get_shifts(self.db, schedule_id=self.schedule_id)
+        self.assertTrue(all(r.schedule_id == self.schedule_id for r in rows))
+        self.assertEqual(len(rows), 3)
 
     def test_get_shifts_notes_ilike(self):
         rows = service.get_shifts(self.db, notes="front")
@@ -117,11 +141,11 @@ class ShiftServiceTests(unittest.TestCase):
     def test_create_shift_inserts_and_returns(self):
         payload = Obj(
             org_id=self.org_id,
+            schedule_id=self.schedule_id,
             location_id=self.location_id,
             role_id=3,
             start_at=datetime(2025, 10, 19, 9, 0, tzinfo=timezone.utc),
             end_at=datetime(2025, 10, 19, 17, 0, tzinfo=timezone.utc),
-            status=ShiftStatus.draft,
             notes="new day",
         )
         created = service.create_shift(self.db, payload)
@@ -130,6 +154,7 @@ class ShiftServiceTests(unittest.TestCase):
         again = service.get_shift(self.db, created.id)
         self.assertIsNotNone(again)
         self.assertEqual(again.notes, "new day")
+        self.assertEqual(again.schedule_id, self.schedule_id)
 
     # ---- delete_shift ----
     def test_delete_shift_existing(self):
@@ -143,9 +168,10 @@ class ShiftServiceTests(unittest.TestCase):
         # still 3 originals remain (we didn’t delete any real row)
         rows = service.get_shifts(self.db)
         self.assertEqual(len(rows), 3)
-    
+
+    # ---- update_shift ----
     def test_update_shift_end_time_only(self):
-    # Take existing shift and extend by 1 hour
+        # Take existing shift and extend by 1 hour
         shift_id = self.ids[0]
         before = service.get_shift(self.db, shift_id)
         new_end = before.end_at + timedelta(hours=1)
@@ -158,7 +184,6 @@ class ShiftServiceTests(unittest.TestCase):
         # unchanged fields remain the same
         assert after.start_at == before.start_at
         assert after.location_id == before.location_id
-        assert after.status == before.status
 
     def test_update_shift_notes_only(self):
         shift_id = self.ids[1]
