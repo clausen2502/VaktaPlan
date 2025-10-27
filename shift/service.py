@@ -1,85 +1,83 @@
 from __future__ import annotations
 from datetime import datetime
+from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from typing import Optional
-from fastapi import HTTPException, status
+from fastapi import HTTPException
 
-
-from .models import Shift, ShiftStatus
+from .models import Shift
 from .schemas import ShiftCreate, ShiftUpdate
 
-def get_shift(db: Session, shift_id: int) -> Shift:
-    return db.query(Shift).filter(Shift.id == shift_id).first()
+def get_shift(db: Session, shift_id: int) -> Shift | None:
+    return db.get(Shift, shift_id)
 
 def get_shifts(
     db: Session,
     *,
     org_id: Optional[int] = None,
+    schedule_id: Optional[int] = None,
     location_id: Optional[int] = None,
-    status: Optional[ShiftStatus] = None,
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
     notes: Optional[str] = None,
-    ) -> list[Shift]:
-    statement = select(Shift)
+) -> list[Shift]:
+    stmt = select(Shift)
     if org_id is not None:
-        statement = statement.where(Shift.org_id == org_id)
+        stmt = stmt.where(Shift.org_id == org_id)
+    if schedule_id is not None:
+        stmt = stmt.where(Shift.schedule_id == schedule_id)
     if location_id is not None:
-        statement = statement.where(Shift.location_id == location_id)
-    if status is not None:
-        statement = statement.where(Shift.status == status)
+        stmt = stmt.where(Shift.location_id == location_id)
     if start is not None:
-        statement = statement.where(Shift.end_at > start)
+        stmt = stmt.where(Shift.end_at > start)   # overlaps window
     if end is not None:
-        statement = statement.where(Shift.start_at < end)
+        stmt = stmt.where(Shift.start_at < end)   # overlaps window
     if notes is not None:
-        statement = statement.where(Shift.notes.ilike(f"%{notes}%"))
-    statement = statement.order_by(Shift.start_at)
-    return list(db.scalars(statement))
+        stmt = stmt.where(Shift.notes.ilike(f"%{notes}%"))
+    stmt = stmt.order_by(Shift.start_at)
+    return list(db.scalars(stmt))
 
 def create_shift(db: Session, shift: ShiftCreate) -> Shift:
-    db_shift = Shift(
+    row = Shift(
         org_id=shift.org_id,
+        schedule_id=shift.schedule_id,
         location_id=shift.location_id,
         role_id=shift.role_id,
         start_at=shift.start_at,
         end_at=shift.end_at,
-        status=shift.status,
         notes=shift.notes,
     )
-    db.add(db_shift)
+    if row.start_at >= row.end_at:
+        raise HTTPException(status_code=422, detail="start_at must be before end_at")
+    db.add(row)
     db.commit()
-    db.refresh(db_shift)
-    return db_shift
-
-def delete_shift(db: Session, shift_id: int) -> None:
-    db_shift = db.query(Shift).filter(Shift.id == shift_id).first()
-    if db_shift:
-        db.delete(db_shift)
-        db.commit()
-    return
+    db.refresh(row)
+    return row
 
 def update_shift(db: Session, shift_id: int, patch: ShiftUpdate) -> Shift:
-    db_shift = db.query(Shift).filter(Shift.id == shift_id).first()
-    if not db_shift:
+    row = db.get(Shift, shift_id)
+    if not row:
         raise HTTPException(status_code=404, detail="Shift not found")
 
-    data = patch.model_dump(exclude_unset=True, exclude_none=True)
-    new_start = data.get("start_at", db_shift.start_at)
-    new_end   = data.get("end_at",   db_shift.end_at)
-
-    # validation on new start and end date
+    data = patch.model_dump(exclude_unset=True)
+    new_start = data.get("start_at", row.start_at)
+    new_end   = data.get("end_at",   row.end_at)
     if new_start is not None and new_end is not None and new_start >= new_end:
-        raise HTTPException(status_code=422, detail="start at must be before end at")
+        raise HTTPException(status_code=422, detail="start_at must be before end_at")
 
     for k, v in data.items():
-        setattr(db_shift, k, v)
+        setattr(row, k, v)
 
     db.commit()
-    db.refresh(db_shift)
-    return db_shift
+    db.refresh(row)
+    return row
+
+def delete_shift(db: Session, shift_id: int) -> None:
+    row = db.get(Shift, shift_id)
+    if row:
+        db.delete(row)
+        db.commit()
 
 def get_shift_for_org(db: Session, shift_id: int, org_id: int) -> Optional[Shift]:
-    statement = select(Shift).where(Shift.id == shift_id, Shift.org_id == org_id)
-    return db.scalars(statement).first()
+    stmt = select(Shift).where(Shift.id == shift_id, Shift.org_id == org_id)
+    return db.scalars(stmt).first()

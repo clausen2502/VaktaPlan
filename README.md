@@ -71,11 +71,11 @@ curl -sS "$BASE_URL/shifts/{shift_id}" -H "$(auth)"
 ###  Create a new shift
 curl -sS -X POST "$BASE_URL/shifts" -H "$json" -H "$(auth)" \
   -d '{
+    "schedule_id": 1,
     "location_id": 1,
     "role_id": 1,
     "start_at": "2025-10-18T09:00:00Z",
     "end_at":   "2025-10-18T17:00:00Z",
-    "status": "draft",
     "notes": "Front desk"
   }'
 
@@ -288,28 +288,28 @@ curl -sS -X PATCH "$BASE_URL/assignments/1/1" \
 ### Delete (manager only)
 curl -i -X DELETE "$BASE_URL/assignments/{shift_id}/{employee_id}" -H "$(auth)"
 
-# Publications (publish a shift)
+# Schedules
 
-## List publications - optional filters
-curl -sS "$BASE_URL/publications" -H "$(auth)"
+### List schedules — optional filters
+curl -sS "$BASE_URL/schedules" -H "$(auth)"
 
 ### Covering a specific date
-curl -sS "$BASE_URL/publications?active_on=2025-10-03" -H "$(auth)"
+curl -sS "$BASE_URL/schedules?active_on=2025-10-03" -H "$(auth)"
 
 ### Starting on/after a date
-curl -sS "$BASE_URL/publications?start_from=2025-10-01" -H "$(auth)"
+curl -sS "$BASE_URL/schedules?start_from=2025-10-01" -H "$(auth)"
 
 ### Ending on/before a date
-curl -sS "$BASE_URL/publications?end_to=2025-10-31" -H "$(auth)"
+curl -sS "$BASE_URL/schedules?end_to=2025-10-31" -H "$(auth)"
 
 ### Combine filters
-curl -sS "$BASE_URL/publications?start_from=2025-10-01&end_to=2025-10-31" -H "$(auth)"
+curl -sS "$BASE_URL/schedules?start_from=2025-10-01&end_to=2025-10-31" -H "$(auth)"
 
-### Get a publication by id
-curl -sS "$BASE_URL/publications/{publication_id}" -H "$(auth)"
+### Get a schedule by id
+curl -sS "$BASE_URL/schedules/{schedule_id}" -H "$(auth)"
 
-### Create a publication
-curl -sS -X POST "$BASE_URL/publications" \
+### Create a schedule
+curl -sS -X POST "$BASE_URL/schedules" \
   -H "$json" -H "$(auth)" \
   -d '{
     "range_start": "2025-10-01",
@@ -317,5 +317,5 @@ curl -sS -X POST "$BASE_URL/publications" \
     "version": 2
   }'
 
-## Delete a publication
-curl -i -X DELETE "$BASE_URL/publications/{publication_id}" -H "$(auth)"
+### Delete a schedule
+curl -i -X DELETE "$BASE_URL/schedules/{schedule_id}" -H "$(auth)"

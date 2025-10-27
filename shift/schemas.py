@@ -1,27 +1,26 @@
 from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
-from .models import ShiftStatus
 
 class ShiftSchema(BaseModel):
     id: int
     org_id: int
+    schedule_id: int
     location_id: Optional[int] = None
     role_id: Optional[int] = None
     start_at: datetime
     end_at: datetime
-    status: ShiftStatus
+    canceled_at: Optional[datetime] = None
+    cancel_reason: Optional[str] = None
     notes: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
 
-
-# PUBLIC payload, what clients send
 class ShiftCreatePayload(BaseModel):
+    schedule_id: int
     location_id: Optional[int] = None
     role_id: Optional[int] = None
     start_at: datetime = Field(..., description="TZ-aware ISO8601")
-    end_at: datetime   = Field(..., description="TZ-aware ISO8601")
-    status: ShiftStatus = ShiftStatus.draft
+    end_at:   datetime = Field(..., description="TZ-aware ISO8601")
     notes: Optional[str] = None
     model_config = ConfigDict(extra="forbid")
 
@@ -35,32 +34,30 @@ class ShiftCreatePayload(BaseModel):
     @model_validator(mode="after")
     def end_after_start(self):
         if self.end_at <= self.start_at:
-            raise ValueError("The end date must be after the start date!")
+            raise ValueError("end_at must be after start_at")
         return self
 
-
-# INTERNAL DTO for the service
 class ShiftCreate(BaseModel):
     org_id: int
+    schedule_id: int
     location_id: Optional[int] = None
     role_id: Optional[int] = None
     start_at: datetime
     end_at: datetime
-    status: ShiftStatus
     notes: Optional[str] = None
 
-
 class ShiftUpdate(BaseModel):
+    schedule_id: Optional[int] = None
     location_id: Optional[int] = None
     role_id: Optional[int] = None
     start_at: Optional[datetime] = None
     end_at: Optional[datetime] = None
-    status: Optional[ShiftStatus] = None
+    canceled_at: Optional[datetime] = None
+    cancel_reason: Optional[str] = None
     notes: Optional[str] = None
 
     @model_validator(mode="after")
     def check_dates_if_both_present(self):
-        if self.start_at is not None and self.end_at is not None:
-            if self.start_at >= self.end_at:
-                raise ValueError("start_at must be before end_at")
+        if self.start_at is not None and self.end_at is not None and self.start_at >= self.end_at:
+            raise ValueError("start_at must be before end_at")
         return self
