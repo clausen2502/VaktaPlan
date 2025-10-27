@@ -1,20 +1,22 @@
 # VaktaPlan
+A web application created to help managers create a schedule for their employees. 
+Managers import all their employees, and shift dates and timeframe. After the manager has implemented both,
+he can optionally add preferences to each employee, which for example is "John wants to preferrably work mondays",
+and "John does not like working on fridays". You can also set a block in preferences, which is "John can't work on Sundays."
+VaktaPlan  has an option for employees in school, where if the employee sends their school schedule, the manager can upload
+the schedule to VaktaPlan and the school schedule will be read and create inputs into preferences for a specific timeframe (1 semester) where the inputs are for example "In school on mondays from 09:00 - 16:00, John can't work".
+After all imports are done, the manager can get a "suggestive schedule" where VaktaPlan offers a suggested schedule, with all requirements fulfilled if it is possible. Future features would be to create an app, where employees can download the app and see their schedules in the app. Furthermore, they can view their schedule and request to change shifts, notify unavailability through the app, etc.
+This is made to make schedules for manager easier and faster.
+
 ## Built with FastAPI + SQLAlchemy 2 + Alembic + Postgresql
 
 ### Run server with:
 fastapi dev main.py
 
-### Run tests with:
+### Run all tests with:
 python -m unittest discover -s tests -p "test_*.py" -v
 
-### layout
-router.py        # FastAPI: @get/@post endpoints
-schemas.py       # Pydantic: ShiftCreateIn, ShiftRead, etc.
-service.py       # Orchestration: DB session, repos, logic calls
-logic.py         # Domain: validate_window, detect_conflicts, compute_payable
-model.py         # SQLAlchemy: class Shift(Base)
-
-# Instructions: get bearer token and login
+# Instructions for login, get bearer token
 export BASE_URL="http://127.0.0.1:8000/api"
 export EMAIL="johanna.inga@outlook.com"
 export PASS="admin"
