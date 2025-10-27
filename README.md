@@ -1,20 +1,22 @@
 # VaktaPlan
+A web application created to help managers create a schedule for their employees. 
+Managers import all their employees, and shift dates and timeframe. After the manager has implemented both,
+he can optionally add preferences to each employee, which for example is "John wants to preferrably work mondays",
+and "John does not like working on fridays". You can also set a block in preferences, which is "John can't work on Sundays."
+VaktaPlan  has an option for employees in school, where if the employee sends their school schedule, the manager can upload
+the schedule to VaktaPlan and the school schedule will be read and create inputs into preferences for a specific timeframe (1 semester) where the inputs are for example "In school on mondays from 09:00 - 16:00, John can't work".
+After all imports are done, the manager can get a "suggestive schedule" where VaktaPlan offers a suggested schedule, with all requirements fulfilled if it is possible. Future features would be to create an app, where employees can download the app and see their schedules in the app. Furthermore, they can view their schedule and request to change shifts, notify unavailability through the app, etc.
+This is made to make schedules for manager easier and faster.
+
 ## Built with FastAPI + SQLAlchemy 2 + Alembic + Postgresql
 
 ### Run server with:
 fastapi dev main.py
 
-### Run tests with:
+### Run all tests with:
 python -m unittest discover -s tests -p "test_*.py" -v
 
-### layout
-router.py        # FastAPI: @get/@post endpoints
-schemas.py       # Pydantic: ShiftCreateIn, ShiftRead, etc.
-service.py       # Orchestration: DB session, repos, logic calls
-logic.py         # Domain: validate_window, detect_conflicts, compute_payable
-model.py         # SQLAlchemy: class Shift(Base)
-
-# Instructions: get bearer token and login
+# Instructions for login, get bearer token
 export BASE_URL="http://127.0.0.1:8000/api"
 export EMAIL="johanna.inga@outlook.com"
 export PASS="admin"
@@ -31,7 +33,7 @@ json='Content-Type: application/json'
 
 # Routes
 
-## User
+# User
 ### List all users
 curl -sS "$BASE_URL/users"
 
@@ -52,7 +54,7 @@ curl -sS -X POST "$BASE_URL/users" -H "$json" \
 curl -sS -X POST "$BASE_URL/users/signup-manager" -H "$json" \
   -d '{"org_name":"MyOrg","username":"manager","email":"manager@example.com","password":"admin"}'
 
-## Shift
+# Shift
 
 ### List shifts supports filters
 
@@ -85,7 +87,7 @@ curl -i -X DELETE "$BASE_URL/shifts/{shift_id}" -H "$(auth)"
 curl -sS -X PATCH "$BASE_URL/shifts/1" -H "$json" -H "$(auth)" \
   -d '{"end_at":"2025-10-18T18:00:00Z"}'
 
-## Locations
+# Locations
 
 ### List all locations
 curl -sS "$BASE_URL/locations" -H "$(auth)"
@@ -125,11 +127,11 @@ curl -i -X DELETE "$BASE_URL/employees/{employee_id}" -H "$(auth)"
 curl -sS -X PATCH "$BASE_URL/employees/{employee_id}" -H "$json" -H "$(auth)" \
   -d '{"display_name":"Jonas H."}'
 
-## Preferences
+# Preferences
 
-### - Weight is used to help create a suggestion schedule.
-### - Hard block (do_not_schedule=true) where weight is ignored.
-### - Optional active window that limits when the preference applies (YYYY-MM-DD).
+#### - Weight is used to help create a suggestion schedule.
+#### - Hard block (do_not_schedule=true) where weight is ignored.
+#### - Optional active window that limits when the preference applies (YYYY-MM-DD).
 
 ### List preferences (org-scoped; optionally filter by employee_id)
 curl -sS "$BASE_URL/preferences" -H "$(auth)"
@@ -173,7 +175,7 @@ curl -sS -X PATCH "$BASE_URL/preferences/{preference_id}" -H "$json" -H "$(auth)
 ### Delete preference
 curl -i -X DELETE "$BASE_URL/preferences/{preference_id}" -H "$(auth)"
 
-## Job Roles
+# Job Roles
 
 ## List job roles
 curl -sS "$BASE_URL/jobroles" -H "$(auth)"
