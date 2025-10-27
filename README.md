@@ -31,7 +31,7 @@ json='Content-Type: application/json'
 
 # Routes
 
-## User
+# User
 ### List all users
 curl -sS "$BASE_URL/users"
 
@@ -52,7 +52,7 @@ curl -sS -X POST "$BASE_URL/users" -H "$json" \
 curl -sS -X POST "$BASE_URL/users/signup-manager" -H "$json" \
   -d '{"org_name":"MyOrg","username":"manager","email":"manager@example.com","password":"admin"}'
 
-## Shift
+# Shift
 
 ### List shifts supports filters
 
@@ -85,7 +85,7 @@ curl -i -X DELETE "$BASE_URL/shifts/{shift_id}" -H "$(auth)"
 curl -sS -X PATCH "$BASE_URL/shifts/1" -H "$json" -H "$(auth)" \
   -d '{"end_at":"2025-10-18T18:00:00Z"}'
 
-## Locations
+# Locations
 
 ### List all locations
 curl -sS "$BASE_URL/locations" -H "$(auth)"
@@ -125,11 +125,11 @@ curl -i -X DELETE "$BASE_URL/employees/{employee_id}" -H "$(auth)"
 curl -sS -X PATCH "$BASE_URL/employees/{employee_id}" -H "$json" -H "$(auth)" \
   -d '{"display_name":"Jonas H."}'
 
-## Preferences
+# Preferences
 
-### - Weight is used to help create a suggestion schedule.
-### - Hard block (do_not_schedule=true) where weight is ignored.
-### - Optional active window that limits when the preference applies (YYYY-MM-DD).
+#### - Weight is used to help create a suggestion schedule.
+#### - Hard block (do_not_schedule=true) where weight is ignored.
+#### - Optional active window that limits when the preference applies (YYYY-MM-DD).
 
 ### List preferences (org-scoped; optionally filter by employee_id)
 curl -sS "$BASE_URL/preferences" -H "$(auth)"
@@ -173,7 +173,7 @@ curl -sS -X PATCH "$BASE_URL/preferences/{preference_id}" -H "$json" -H "$(auth)
 ### Delete preference
 curl -i -X DELETE "$BASE_URL/preferences/{preference_id}" -H "$(auth)"
 
-## Job Roles
+# Job Roles
 
 ## List job roles
 curl -sS "$BASE_URL/jobroles" -H "$(auth)"
