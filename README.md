@@ -177,42 +177,42 @@ curl -i -X DELETE "$BASE_URL/preferences/{preference_id}" -H "$(auth)"
 
 # Job Roles
 
-## List job roles
+### List job roles
 curl -sS "$BASE_URL/jobroles" -H "$(auth)"
 
-## Get job role by id
+### Get job role by id
 curl -sS "$BASE_URL/jobroles/{jobrole_id}" -H "$(auth)"
 
-## Create job role
+### Create job role
 curl -sS -X POST "$BASE_URL/jobroles" \
   -H "$json" -H "$(auth)" \
   -d '{"name":"Starfsmaður á kassa"}'
 
-## Update job role
+### Update job role
 curl -sS -X PATCH "$BASE_URL/jobroles/{jobrole_id}" \
   -H "$json" -H "$(auth)" \
   -d '{"name":"Yfirmaður Kringlunnar"}'
 
-## Delete job role
+### Delete job role
 curl -i -X DELETE "$BASE_URL/jobroles/{jobrole_id}" -H "$(auth)"
 
 # Organization
 
-## Get your own organization details
+### Get your own organization details
 curl -sS "$BASE_URL/organizations/me" -H "$(auth)"
 
-## List all organizations
+### List all organizations
 curl -sS "$BASE_URL/organizations" -H "$(auth)"
 
-## Get organization by id
+### Get organization by id
 curl -sS "$BASE_URL/organizations/{org_id}" -H "$(auth)"
 
-## Create organization
+### Create organization
 curl -sS -X POST "$BASE_URL/organizations" \
   -H "$json" -H "$(auth)" \
   -d '{"name":"Dominos"}'
 
-## helper to set your org_id
+### helper to set your org_id
 export MY_ORG_ID=$(
   curl -sS "$BASE_URL/organizations/me" -H "$(auth)" \
   | python3 -c 'import sys,json; print(json.load(sys.stdin)["id"])'
@@ -227,23 +227,23 @@ curl -sS -X PATCH "$BASE_URL/organizations/$MY_ORG_ID" \
   -H "$json" -H "$(auth)" \
   -d "{\"name\":\"Domino's\"}"
 
-## Delete organization
+### Delete organization
 curl -i -X DELETE "$BASE_URL/organizations/{org_id}" -H "$(auth)"
 
-## Delete your own organization
+### Delete your own organization
 curl -i -X DELETE "$BASE_URL/organizations/me" \
   -H "$(auth)"
 
 # Unavailability
 
-## List unavailability (optionally filter by employee)
+### List unavailability (optionally filter by employee)
 curl -sS "$BASE_URL/unavailability" -H "$(auth)"
 curl -sS "$BASE_URL/unavailability?employee_id=1" -H "$(auth)"
 
-## Get unavailability by id
+### Get unavailability by id
 curl -sS "$BASE_URL/unavailability/{unavail_id}" -H "$(auth)"
 
-## Create unavailability
+### Create unavailability
 curl -sS -X POST "$BASE_URL/unavailability" \
   -H "$json" -H "$(auth)" \
   -d '{
@@ -253,7 +253,7 @@ curl -sS -X POST "$BASE_URL/unavailability" \
     "reason": "Tannlæknir"
   }'
 
-## Update unavailability
+### Update unavailability
 curl -sS -X PATCH "$BASE_URL/unavailability/{unavail_id}" \
   -H "$json" -H "$(auth)" \
   -d '{
@@ -267,25 +267,25 @@ curl -i -X DELETE "$BASE_URL/unavailability/{unavail_id}" -H "$(auth)"
 
 # Assignments
 
-## List (optionally filter by shift_id or employee_id)
+### List (optionally filter by shift_id or employee_id)
 curl -sS "$BASE_URL/assignments" -H "$(auth)"
 curl -sS "$BASE_URL/assignments?shift_id=1" -H "$(auth)"
 curl -sS "$BASE_URL/assignments?employee_id=1" -H "$(auth)"
 
-## Get by composite id
+### Get by composite id
 curl -sS "$BASE_URL/assignments/{shift_id}/{employee_id}" -H "$(auth)"
 
-## Create (manager only)
+### Create (manager only)
 curl -sS -X POST "$BASE_URL/assignments" \
   -H "$json" -H "$(auth)" \
   -d '{"shift_id": 1, "employee_id": 1, "preference_score": 4}'
 
-## Update (manager only, only preference_score is editable)
+### Update (manager only, only preference_score is editable)
 curl -sS -X PATCH "$BASE_URL/assignments/1/1" \
   -H "$json" -H "$(auth)" \
   -d '{"preference_score": 5}'
 
-# Delete (manager only)
+### Delete (manager only)
 curl -i -X DELETE "$BASE_URL/assignments/{shift_id}/{employee_id}" -H "$(auth)"
 
 # Publications (publish a shift)
@@ -305,10 +305,10 @@ curl -sS "$BASE_URL/publications?end_to=2025-10-31" -H "$(auth)"
 ### Combine filters
 curl -sS "$BASE_URL/publications?start_from=2025-10-01&end_to=2025-10-31" -H "$(auth)"
 
-## Get a publication by id
+### Get a publication by id
 curl -sS "$BASE_URL/publications/{publication_id}" -H "$(auth)"
 
-## Create a publication
+### Create a publication
 curl -sS -X POST "$BASE_URL/publications" \
   -H "$json" -H "$(auth)" \
   -d '{
