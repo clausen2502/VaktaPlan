@@ -109,7 +109,6 @@ class AssignmentServiceTests(unittest.TestCase):
         self.a1 = Assignment(
             shift_id=self.sh1_o1.id,
             employee_id=self.emp1_o1.id,
-            preference_score=3,
         )
         self.db.add(self.a1)
         self.db.commit()
@@ -165,12 +164,10 @@ class AssignmentServiceTests(unittest.TestCase):
             org_id=self.org1_id,
             shift_id=self.sh2_o1.id,
             employee_id=self.emp2_o1.id,
-            preference_score=5,
         )
         created = service.create_assignment(self.db, dto)
         self.assertEqual(created.shift_id, self.sh2_o1.id)
         self.assertEqual(created.employee_id, self.emp2_o1.id)
-        self.assertEqual(created.preference_score, 5)
 
     def test_create_assignment_404_if_shift_wrong_org(self):
         # shift from org2 with org1 payload => 404
@@ -179,7 +176,6 @@ class AssignmentServiceTests(unittest.TestCase):
             org_id=self.org1_id,
             shift_id=self.sh1_o2.id,
             employee_id=self.emp1_o1.id,
-            preference_score=None,
         )
         with self.assertRaises(HTTPException) as cm:
             service.create_assignment(self.db, dto)
@@ -192,7 +188,6 @@ class AssignmentServiceTests(unittest.TestCase):
             org_id=self.org1_id,
             shift_id=self.sh1_o1.id,        # org1
             employee_id=self.emp1_o2.id,    # belongs to org2
-            preference_score=None,
         )
         with self.assertRaises(HTTPException) as cm:
             service.create_assignment(self.db, dto)
@@ -207,24 +202,16 @@ class AssignmentServiceTests(unittest.TestCase):
             org_id=self.org1_id,
             shift_id=self.sh1_o1.id,
             employee_id=self.emp1_o1.id,   # already assigned in setUp
-            preference_score=1,
         )
         with self.assertRaises(IntegrityError):
             service.create_assignment(self.db, dto)
 
     # -------------- UPDATE ----------------
 
-    def test_update_assignment_ok(self):
-        patch = AssignmentUpdate(preference_score=10)
-        updated = service.update_assignment(
-            self.db, self.sh1_o1.id, self.emp1_o1.id, patch, org_id=self.org1_id
-        )
-        self.assertEqual(updated.preference_score, 10)
-
     def test_update_assignment_404_when_missing_or_wrong_org(self):
         from fastapi import HTTPException
 
-        patch = AssignmentUpdate(preference_score=2)
+        patch = AssignmentUpdate()
         # wrong org
         with self.assertRaises(HTTPException) as cm:
             service.update_assignment(
@@ -246,7 +233,7 @@ class AssignmentServiceTests(unittest.TestCase):
     def test_delete_assignment_true_when_deleted(self):
         ok = service.delete_assignment(self.db, self.sh1_o1.id, self.emp1_o1.id)
         self.assertIsNone(ok)  # function returns None, but we can verify it’s gone
-        still = self.db.get(Assignment, {"shift_id": self.sh1_o1.id, "employee_id": self.emp1_o1.id})
+        still = self.db.get(Assignment, (self.sh1_o1.id, self.emp1_o1.id))
         self.assertIsNone(still)
 
     def test_delete_assignment_false_when_missing_is_ok(self):

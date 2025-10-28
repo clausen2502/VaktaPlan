@@ -63,7 +63,6 @@ def create_assignment(db: Session, dto: AssignmentCreate) -> Assignment:
     row = Assignment(
         shift_id=dto.shift_id,
         employee_id=dto.employee_id,
-        preference_score=dto.preference_score,
     )
     db.add(row)
     # Let IntegrityError bubble; router maps to 409 on duplicate composite key

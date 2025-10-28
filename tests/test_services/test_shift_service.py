@@ -89,7 +89,9 @@ class ShiftServiceTests(unittest.TestCase):
         )
         self.db.add_all([s1, s2, s3])
         self.db.commit()
-        self.db.refresh(s1); self.db.refresh(s2); self.db.refresh(s3)
+        self.db.refresh(s1)
+        self.db.refresh(s2)
+        self.db.refresh(s3)
 
         # Store ids for convenience in tests
         self.ids = [s1.id, s2.id, s3.id]
@@ -132,7 +134,7 @@ class ShiftServiceTests(unittest.TestCase):
     def test_get_shifts_time_window_overlap(self):
         # Overlaps only the middle shift (2025-10-17)
         start = datetime(2025, 10, 17, 8, 30, tzinfo=timezone.utc)
-        end   = datetime(2025, 10, 17, 12, 0, tzinfo=timezone.utc)
+        end = datetime(2025, 10, 17, 12, 0, tzinfo=timezone.utc)
         rows = service.get_shifts(self.db, start=start, end=end)
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0].start_at.date().isoformat(), "2025-10-17")
@@ -147,6 +149,7 @@ class ShiftServiceTests(unittest.TestCase):
             start_at=datetime(2025, 10, 19, 9, 0, tzinfo=timezone.utc),
             end_at=datetime(2025, 10, 19, 17, 0, tzinfo=timezone.utc),
             notes="new day",
+            required_staff_count=1,  # ← add this
         )
         created = service.create_shift(self.db, payload)
         self.assertIsInstance(created.id, int)
@@ -155,6 +158,8 @@ class ShiftServiceTests(unittest.TestCase):
         self.assertIsNotNone(again)
         self.assertEqual(again.notes, "new day")
         self.assertEqual(again.schedule_id, self.schedule_id)
+        self.assertEqual(again.required_staff_count, 1)
+
 
     # ---- delete_shift ----
     def test_delete_shift_existing(self):

@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 from datetime import datetime
-from sqlalchemy import DateTime, Text, ForeignKey, Index
+from sqlalchemy import Integer, DateTime, Text, ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from core.database import Base
 
@@ -33,6 +33,9 @@ class Shift(Base):
     start_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     end_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
+    required_staff_count: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+
+
     notes: Mapped[str | None] = mapped_column(Text(), nullable=True)
 
     # relationships
@@ -40,6 +43,7 @@ class Shift(Base):
     location: Mapped["Location | None"] = relationship("Location", lazy="joined", passive_deletes=True)
     role: Mapped["JobRole | None"] = relationship("JobRole")
     org: Mapped["Organization"] = relationship("Organization")
+    assignments = relationship("Assignment", back_populates="shift", cascade="all, delete-orphan", passive_deletes=True)
 
 Index("ix_shifts_org_start", Shift.org_id, Shift.start_at)
 Index("ix_shifts_schedule_start", Shift.schedule_id, Shift.start_at)

@@ -6,7 +6,6 @@ from pydantic import BaseModel, ConfigDict
 class AssignmentSchema(BaseModel):
     shift_id: int
     employee_id: int
-    preference_score: Optional[int] = None
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -14,7 +13,6 @@ class AssignmentSchema(BaseModel):
 class AssignmentCreatePayload(BaseModel):
     shift_id: int
     employee_id: int
-    preference_score: Optional[int] = None
     model_config = ConfigDict(extra="forbid")
 
 

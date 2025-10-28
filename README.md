@@ -14,7 +14,7 @@ This is made to make schedules for manager easier and faster.
 fastapi dev main.py
 
 ### Run all tests with:
-python -m unittest discover -s tests -p "test_*.py" -v
+python3 -m unittest discover -s tests -p "test_*.py" -v
 
 # Instructions for login, get bearer token
 export BASE_URL="http://127.0.0.1:8000/api"
