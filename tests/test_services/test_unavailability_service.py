@@ -1,6 +1,5 @@
-# tests/test_services/test_unavailability_service.py
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker

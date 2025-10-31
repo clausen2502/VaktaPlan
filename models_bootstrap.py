@@ -8,3 +8,4 @@ from unavailability import models as _unavailability_models
 from assignment import models as _assignment_models
 from shift import models as _shift_models
 from schedule import models as _schedule_models
+from weeklytemplate import models as _weeklytemplate_models

@@ -4,9 +4,9 @@ Managers import all their employees, and shift dates and timeframe. After the ma
 he can optionally add preferences to each employee, which for example is "John wants to preferrably work mondays",
 and "John does not like working on fridays". You can also set a block in preferences, which is "John can't work on Sundays."
 VaktaPlan  has an option for employees in school, where if the employee sends their school schedule, the manager can upload
-the schedule to VaktaPlan and the school schedule will be read and create inputs into preferences for a specific timeframe (1 semester) where the inputs are for example "In school on mondays from 09:00 - 16:00, John can't work".
+the schedule to VaktaPlan, and VaktaPlan creates inputs into preferences for a specific timeframe (1 semester) where the inputs are for example "In school on mondays from 09:00 - 16:00, John can't work".
 After all imports are done, the manager can get a "suggestive schedule" where VaktaPlan offers a suggested schedule, with all requirements fulfilled if it is possible. Future features would be to create an app, where employees can download the app and see their schedules in the app. Furthermore, they can view their schedule and request to change shifts, notify unavailability through the app, etc.
-This is made to make schedules for manager easier and faster.
+This is made to make scheduling for managers easier and faster, and for easy access for employees.
 
 ## Built with FastAPI + SQLAlchemy 2 + Alembic + Postgresql
 
@@ -16,7 +16,7 @@ fastapi dev main.py
 ### Run all tests with:
 python3 -m unittest discover -s tests -p "test_*.py" -v
 
-# Instructions for login, get bearer token
+# Instructions for login:
 export BASE_URL="http://127.0.0.1:8000/api"
 export EMAIL="johanna.inga@outlook.com"
 export PASS="admin"
@@ -34,6 +34,7 @@ json='Content-Type: application/json'
 # Routes
 
 # User
+
 ### List all users
 curl -sS "$BASE_URL/users"
 
@@ -319,3 +320,62 @@ curl -sS -X POST "$BASE_URL/schedules" \
 
 ### Delete a schedule
 curl -i -X DELETE "$BASE_URL/schedules/{schedule_id}" -H "$(auth)"
+
+# Weekly Template
+
+### List weekly template rows for a schedule
+SCHED_ID=1
+curl -sS "$BASE_URL/schedules/$SCHED_ID/weekly-template" -H "$(auth)"
+
+### Save/replace the entire weekly template
+#### replaces all existing template rows for this schedule with the provided set
+SCHED_ID=1
+curl -sS -X PUT "$BASE_URL/schedules/$SCHED_ID/weekly-template" \
+  -H "$(auth)" -H "$json" \
+  -d '{
+    "items": [
+      { "weekday": 0, "start_time": "09:00:00", "end_time": "17:00:00", "required_staff_count": 2, "notes": "Front" },
+      { "weekday": 2, "start_time": "10:00:00", "end_time": "18:00:00", "required_staff_count": 1 },
+      { "weekday": 4, "start_time": "22:00:00", "end_time": "06:00:00", "notes": "Overnight" }
+    ]
+  }'
+
+### Modify a single template row - update only specific fields on one row.
+SCHED_ID=1
+ROW_ID=5
+curl -sS -X PATCH "$BASE_URL/schedules/$SCHED_ID/weekly-template/$ROW_ID" \
+  -H "$(auth)" -H "$json" \
+  -d '{ "required_staff_count": 3, "notes": "Updated" }'
+
+### Delete a single template row
+SCHED_ID=1
+ROW_ID=5
+curl -i -X DELETE "$BASE_URL/schedules/$SCHED_ID/weekly-template/$ROW_ID" -H "$(auth)"
+
+### Generate shifts from template - policy: replace
+#### Deletes overlapping shifts in the range, then generates new ones
+SCHED_ID=1
+curl -sS -X POST "$BASE_URL/schedules/$SCHED_ID/weekly-template/generate" \
+  -H "$(auth)" -H "$json" \
+  -d '{
+    "start_date": "2025-10-27",
+    "end_date":   "2025-11-02",
+    "policy": "replace"
+  }'
+
+### Generate shifts from template - policy: fill_missing
+#### Keeps existing shift, only inserts where no overlap
+SCHED_ID=1
+curl -sS -X POST "$BASE_URL/schedules/$SCHED_ID/weekly-template/generate" \
+  -H "$(auth)" -H "$json" \
+  -d '{
+    "start_date": "2025-10-27",
+    "end_date":   "2025-11-02",
+    "policy": "fill_missing"
+  }'
+
+### Verify generated shifts exist for the schedule
+SCHED_ID=1
+curl -sS "$BASE_URL/shifts?schedule_id=$SCHED_ID" -H "$(auth)"
+
+
