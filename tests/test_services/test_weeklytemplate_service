@@ -1,0 +1,271 @@
+from __future__ import annotations
+import unittest
+from datetime import date, time, datetime, timedelta, timezone
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, Session
+
+from core.database import Base
+from organization.models import Organization
+from schedule.models import Schedule, ScheduleStatus
+from weeklytemplate.models import WeeklyTemplate
+from shift.models import Shift
+
+from weeklytemplate import service
+from weeklytemplate.schema import WeeklyTemplateUpsertPayload, WeeklyTemplateRowUpdate, WeeklyTemplateGeneratePayload
+
+
+class WeeklyTemplateServiceTests(unittest.TestCase):
+    def setUp(self):
+        # Fresh DB per test
+        self.engine = create_engine("sqlite:///:memory:", future=True)
+        Base.metadata.create_all(self.engine)
+        TestingSession = sessionmaker(bind=self.engine, expire_on_commit=False, future=True)
+        self.db: Session = TestingSession()
+
+        # Seed orgs
+        org1 = Organization(name="Org One", timezone="Atlantic/Reykjavik")
+        org2 = Organization(name="Org Two", timezone="Atlantic/Reykjavik")
+        self.db.add_all([org1, org2]); self.db.flush()
+        self.org1_id = org1.id
+        self.org2_id = org2.id
+
+        # Seed schedules (one per org)
+        sched1 = Schedule(
+            org_id=self.org1_id,
+            range_start=date(2025, 10, 27),
+            range_end=date(2025, 11, 2),
+            version=1,
+            status=ScheduleStatus.draft,
+            created_by=None,
+        )
+        sched2 = Schedule(
+            org_id=self.org2_id,
+            range_start=date(2025, 10, 27),
+            range_end=date(2025, 11, 2),
+            version=1,
+            status=ScheduleStatus.draft,
+            created_by=None,
+        )
+        self.db.add_all([sched1, sched2]); self.db.commit()
+        self.db.refresh(sched1); self.db.refresh(sched2)
+        self.sched1_id = sched1.id
+        self.sched2_id = sched2.id
+
+    def tearDown(self):
+        self.db.close()
+        self.engine.dispose()
+
+    # ---------- queries ----------
+
+    def test_get_weekly_template_rows_empty(self):
+        rows = service.get_weekly_template_rows(self.db, schedule_id=self.sched1_id, org_id=self.org1_id)
+        self.assertEqual(rows, [])
+
+    # ---------- upsert/save ----------
+
+    def test_upsert_weekly_template_inserts_rows(self):
+        payload = WeeklyTemplateUpsertPayload(items=[
+            {"weekday": 0, "start_time": time(9, 0), "end_time": time(17, 0), "required_staff_count": 2},
+            {"weekday": 2, "start_time": time(10, 0), "end_time": time(18, 0), "required_staff_count": 1},
+        ])
+        rows = service.upsert_weekly_template(self.db, schedule_id=self.sched1_id, payload=payload)
+        self.assertEqual(len(rows), 2)
+
+        # reading back
+        back = service.get_weekly_template_rows(self.db, schedule_id=self.sched1_id, org_id=self.org1_id)
+        self.assertEqual(len(back), 2)
+        self.assertEqual(back[0].weekday, 0)
+        self.assertEqual(back[0].required_staff_count, 2)
+
+    def test_upsert_weekly_template_404_schedule(self):
+        payload = WeeklyTemplateUpsertPayload(items=[
+            {"weekday": 0, "start_time": time(9, 0), "end_time": time(17, 0)}
+        ])
+        with self.assertRaisesRegex(Exception, "Schedule not found"):
+            service.upsert_weekly_template(self.db, schedule_id=999999, payload=payload)
+
+    def test_upsert_weekly_template_422_same_times(self):
+        payload = WeeklyTemplateUpsertPayload(items=[
+            {"weekday": 1, "start_time": time(9, 0), "end_time": time(9, 0)}
+        ])
+        with self.assertRaisesRegex(Exception, "cannot be equal"):
+            service.upsert_weekly_template(self.db, schedule_id=self.sched1_id, payload=payload)
+
+    def test_upsert_weekly_template_replaces_existing(self):
+        # First save 2 rows
+        payload1 = WeeklyTemplateUpsertPayload(items=[
+            {"weekday": 0, "start_time": time(9, 0), "end_time": time(17, 0)},
+            {"weekday": 1, "start_time": time(8, 0), "end_time": time(16, 0)},
+        ])
+        service.upsert_weekly_template(self.db, schedule_id=self.sched1_id, payload=payload1)
+
+        # Now replace with 1 row
+        payload2 = WeeklyTemplateUpsertPayload(items=[
+            {"weekday": 2, "start_time": time(10, 0), "end_time": time(18, 0)}
+        ])
+        service.upsert_weekly_template(self.db, schedule_id=self.sched1_id, payload=payload2)
+
+        back = service.get_weekly_template_rows(self.db, schedule_id=self.sched1_id, org_id=self.org1_id)
+        self.assertEqual(len(back), 1)
+        self.assertEqual(back[0].weekday, 2)
+
+    # ---------- patch row ----------
+
+    def test_update_weekly_template_row_ok(self):
+        # seed one row
+        payload = WeeklyTemplateUpsertPayload(items=[
+            {"weekday": 0, "start_time": time(9, 0), "end_time": time(17, 0), "required_staff_count": 2}
+        ])
+        rows = service.upsert_weekly_template(self.db, schedule_id=self.sched1_id, payload=payload)
+        row_id = rows[0].id
+
+        patch = WeeklyTemplateRowUpdate(required_staff_count=3, notes="updated")
+        updated = service.update_weekly_template_row(
+            self.db, schedule_id=self.sched1_id, row_id=row_id, patch=patch
+        )
+        self.assertIsNotNone(updated)
+        self.assertEqual(updated.required_staff_count, 3)
+        self.assertEqual(updated.notes, "updated")
+
+    def test_update_weekly_template_row_wrong_schedule_returns_none(self):
+        # create on sched1
+        rows = service.upsert_weekly_template(
+            self.db, schedule_id=self.sched1_id,
+            payload=WeeklyTemplateUpsertPayload(items=[{"weekday": 0, "start_time": time(9), "end_time": time(17)}])
+        )
+        row_id = rows[0].id
+
+        # try to patch under sched2 -> None
+        out = service.update_weekly_template_row(
+            self.db, schedule_id=self.sched2_id, row_id=row_id, patch=WeeklyTemplateRowUpdate(notes="x")
+        )
+        self.assertIsNone(out)
+
+    def test_update_weekly_template_row_422_invalid_equal_times(self):
+        rows = service.upsert_weekly_template(
+            self.db, schedule_id=self.sched1_id,
+            payload=WeeklyTemplateUpsertPayload(items=[{"weekday": 0, "start_time": time(9), "end_time": time(17)}])
+        )
+        row_id = rows[0].id
+        with self.assertRaisesRegex(Exception, "cannot be equal"):
+            service.update_weekly_template_row(
+                self.db,
+                schedule_id=self.sched1_id,
+                row_id=row_id,
+                patch=WeeklyTemplateRowUpdate(start_time=time(9, 0), end_time=time(9, 0)),
+            )
+
+    def test_delete_weekly_template_row(self):
+        rows = service.upsert_weekly_template(
+            self.db, schedule_id=self.sched1_id,
+            payload=WeeklyTemplateUpsertPayload(items=[{"weekday": 4, "start_time": time(9), "end_time": time(17)}])
+        )
+        row_id = rows[0].id
+
+        ok = service.delete_weekly_template_row(self.db, schedule_id=self.sched1_id, row_id=row_id)
+        self.assertTrue(ok)
+        after = service.get_weekly_template_rows(self.db, schedule_id=self.sched1_id, org_id=self.org1_id)
+        self.assertEqual(after, [])
+
+    # ---------- generate ----------
+
+    def test_generate_replace_simple_week(self):
+        # Mon + Wed template
+        service.upsert_weekly_template(
+            self.db, schedule_id=self.sched1_id,
+            payload=WeeklyTemplateUpsertPayload(items=[
+                {"weekday": 0, "start_time": time(9), "end_time": time(17)},
+                {"weekday": 2, "start_time": time(10), "end_time": time(18)},
+            ])
+        )
+
+        # generate for Mon..Sun that includes exactly one Mon and one Wed
+        body = WeeklyTemplateGeneratePayload(
+            start_date=date(2025, 10, 27),
+            end_date=date(2025, 11, 2),
+            policy="replace",
+        )
+        summary = service.generate_from_weekly_template(self.db, schedule_id=self.sched1_id, body=body)
+        self.assertEqual(summary["created"], 2)
+        self.assertIn("replaced", summary)
+        self.assertEqual(summary["skipped"], 0)
+
+        # verify rows are in shifts
+        shifts = self.db.query(Shift).filter(Shift.schedule_id == self.sched1_id).all()
+        self.assertEqual(len(shifts), 2)
+
+    def test_generate_fill_missing_skips_overlaps(self):
+        # Seed template
+        service.upsert_weekly_template(
+            self.db, schedule_id=self.sched1_id,
+            payload=WeeklyTemplateUpsertPayload(items=[
+                {"weekday": 0, "start_time": time(9), "end_time": time(17)},
+                {"weekday": 2, "start_time": time(10), "end_time": time(18)},
+            ])
+        )
+        # First, create shifts (replace)
+        body1 = WeeklyTemplateGeneratePayload(
+            start_date=date(2025, 10, 27),
+            end_date=date(2025, 11, 2),
+            policy="replace",
+        )
+        _ = service.generate_from_weekly_template(self.db, schedule_id=self.sched1_id, body=body1)
+
+        # Run again with fill_missing -> should create 0 and skip 2
+        body2 = WeeklyTemplateGeneratePayload(
+            start_date=date(2025, 10, 27),
+            end_date=date(2025, 11, 2),
+            policy="fill_missing",
+        )
+        summary2 = service.generate_from_weekly_template(self.db, schedule_id=self.sched1_id, body=body2)
+        self.assertEqual(summary2["created"], 0)
+        self.assertEqual(summary2["skipped"], 2)
+
+    def test_generate_handles_overnight(self):
+        # Fri 22:00 -> 06:00 next day
+        service.upsert_weekly_template(
+            self.db, schedule_id=self.sched1_id,
+            payload=WeeklyTemplateUpsertPayload(items=[
+                {"weekday": 4, "start_time": time(22, 0), "end_time": time(6, 0)},
+            ])
+        )
+        # Week covering a Friday (2025-10-31 is Friday)
+        body = WeeklyTemplateGeneratePayload(
+            start_date=date(2025, 10, 27),  # Monday
+            end_date=date(2025, 11, 2),     # Sunday
+            policy="replace",
+        )
+        summary = service.generate_from_weekly_template(self.db, schedule_id=self.sched1_id, body=body)
+        self.assertEqual(summary["created"], 1)
+
+        # Validate end is next day
+        shift = self.db.query(Shift).filter(Shift.schedule_id == self.sched1_id).first()
+        self.assertIsNotNone(shift)
+        # Iceland == UTC in your service -> tz-aware UTC
+        self.assertEqual(shift.start_at.tzinfo, timezone.utc)
+        self.assertEqual(shift.end_at.tzinfo, timezone.utc)
+        self.assertTrue(shift.end_at > shift.start_at)
+        self.assertEqual((shift.end_at - shift.start_at), timedelta(hours=8))
+
+    def test_generate_no_template_returns_zeroes(self):
+        body = WeeklyTemplateGeneratePayload(
+            start_date=date(2025, 10, 27),
+            end_date=date(2025, 10, 27),
+            policy="replace",
+        )
+        summary = service.generate_from_weekly_template(self.db, schedule_id=self.sched1_id, body=body)
+        self.assertEqual(summary, {"created": 0, "replaced": 0, "skipped": 0})
+
+    def test_generate_404_schedule(self):
+        body = WeeklyTemplateGeneratePayload(
+            start_date=date(2025, 10, 27),
+            end_date=date(2025, 11, 2),
+            policy="replace",
+        )
+        with self.assertRaisesRegex(Exception, "Schedule not found"):
+            service.generate_from_weekly_template(self.db, schedule_id=999999, body=body)
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

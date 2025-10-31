@@ -1,4 +1,3 @@
-# tests/test_routers/test_schedule_router.py
 import unittest
 from types import SimpleNamespace as Obj
 from datetime import date
