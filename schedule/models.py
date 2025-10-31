@@ -1,9 +1,11 @@
 from __future__ import annotations
 from datetime import date, datetime
 from enum import Enum
+from typing import List
 from sqlalchemy import Date, DateTime, Integer, Enum as SAEnum, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from core.database import Base
+from weeklytemplate.models import WeeklyTemplate
 
 class ScheduleStatus(str, Enum):
     draft = "draft"
@@ -20,16 +22,15 @@ class Schedule(Base):
     range_end:   Mapped[date] = mapped_column(Date(), nullable=False)
     version:     Mapped[int]  = mapped_column(Integer, nullable=False, default=1)
 
-    status: Mapped[ScheduleStatus] = mapped_column(
-        SAEnum(ScheduleStatus, name="schedule_status"),
-        default=ScheduleStatus.draft,
-        nullable=False,
-    )
+    status: Mapped[ScheduleStatus] = mapped_column(SAEnum(ScheduleStatus, name="schedule_status"), default=ScheduleStatus.draft, nullable=False)
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    created_by:   Mapped[int | None] = mapped_column(ForeignKey("users.id"), index=True)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), index=True)
 
+    # relationships
     shifts = relationship("Shift", back_populates="schedule", cascade="all, delete-orphan")
+    weeklytemplate: Mapped[List["WeeklyTemplate"]] = relationship("WeeklyTemplate", back_populates="schedule", cascade="all, delete-orphan", passive_deletes=True)
+
 
     __table_args__ = (
         UniqueConstraint("org_id", "range_start", "range_end", "version", name="uq_schedule_range_version"),
-    )
+        )

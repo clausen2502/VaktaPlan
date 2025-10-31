@@ -102,7 +102,7 @@ class IntegrationFlowTests(unittest.TestCase):
         # 6) Assign the employee to the shift
         r = self.client.post(
             "/api/assignments",
-            json={"shift_id": shift_id, "employee_id": emp_id, "preference_score": 4},
+            json={"shift_id": shift_id, "employee_id": emp_id},
         )
         self.assertIn(r.status_code, (200, 201), r.text)
         self.assertEqual(r.json()["shift_id"], shift_id)

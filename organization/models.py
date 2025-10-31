@@ -7,7 +7,7 @@ class Organization(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
-    timezone: Mapped[str] = mapped_column(String(64), nullable=False)
+    timezone: Mapped[str] = mapped_column(String(64), nullable=False, default="Atlantic/Reykjavik")
 
     # relationships
     users = relationship("User", back_populates="org", cascade="all, delete") 

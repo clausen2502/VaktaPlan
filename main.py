@@ -13,6 +13,7 @@ from organization.router import organization_router
 from unavailability.router import unavailability_router
 from assignment.router import assignment_router
 from schedule.router import schedule_router
+from weeklytemplate.router import weeklytemplate_router
 
 import models_bootstrap 
 
@@ -51,6 +52,7 @@ app.include_router(organization_router, prefix="/api")
 app.include_router(unavailability_router, prefix="/api")
 app.include_router(assignment_router, prefix="/api")
 app.include_router(schedule_router, prefix="/api")
+app.include_router(weeklytemplate_router, prefix="/api")
 
 
 

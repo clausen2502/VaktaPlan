@@ -35,8 +35,8 @@ class AssignmentRouterTests(unittest.TestCase):
     @patch("assignment.router.service.get_assignments")
     def test_list_assignments_happy_path(self, mock_list):
         mock_list.return_value = [
-            Obj(shift_id=100, employee_id=10, preference_score=3),
-            Obj(shift_id=101, employee_id=11, preference_score=None),
+            Obj(shift_id=100, employee_id=10),
+            Obj(shift_id=101, employee_id=11),
         ]
         resp = self.client.get("/api/assignments")
         self.assertEqual(resp.status_code, 200, resp.text)
@@ -46,7 +46,7 @@ class AssignmentRouterTests(unittest.TestCase):
 
     @patch("assignment.router.service.get_assignments")
     def test_list_assignments_with_filters(self, mock_list):
-        mock_list.return_value = [Obj(shift_id=100, employee_id=10, preference_score=4)]
+        mock_list.return_value = [Obj(shift_id=100, employee_id=10)]
         resp = self.client.get("/api/assignments?shift_id=100&employee_id=10")
         self.assertEqual(resp.status_code, 200)
         out = resp.json()
@@ -57,7 +57,7 @@ class AssignmentRouterTests(unittest.TestCase):
 
     @patch("assignment.router.service.get_assignment_for_org")
     def test_get_assignment_200(self, mock_get_for_org):
-        mock_get_for_org.return_value = Obj(shift_id=100, employee_id=10, preference_score=2)
+        mock_get_for_org.return_value = Obj(shift_id=100, employee_id=10)
         resp = self.client.get("/api/assignments/100/10")
         self.assertEqual(resp.status_code, 200, resp.text)
         self.assertEqual(resp.json()["employee_id"], 10)
@@ -73,16 +73,15 @@ class AssignmentRouterTests(unittest.TestCase):
 
     @patch("assignment.router.service.create_assignment")
     def test_create_assignment_201(self, mock_create):
-        mock_create.return_value = Obj(shift_id=100, employee_id=10, preference_score=5)
+        mock_create.return_value = Obj(shift_id=100, employee_id=10)
         resp = self.client.post(
             "/api/assignments",
-            json={"shift_id": 100, "employee_id": 10, "preference_score": 5},
+            json={"shift_id": 100, "employee_id": 10},
         )
         self.assertEqual(resp.status_code, 201, resp.text)
         body = resp.json()
         self.assertEqual(body["shift_id"], 100)
         self.assertEqual(body["employee_id"], 10)
-        self.assertEqual(body["preference_score"], 5)
 
     @patch("assignment.router.service.create_assignment")
     def test_create_assignment_409_duplicate(self, mock_create):
@@ -99,28 +98,32 @@ class AssignmentRouterTests(unittest.TestCase):
     @patch("assignment.router.service.update_assignment")
     @patch("assignment.router.service.get_assignment_for_org")
     def test_update_assignment_200(self, mock_get_for_org, mock_update):
-        mock_get_for_org.return_value = Obj(shift_id=100, employee_id=10, preference_score=2)
-        mock_update.return_value = Obj(shift_id=100, employee_id=10, preference_score=4)
+        # Note: decorator closest to the function is the FIRST arg
+        mock_get_for_org.return_value = Obj(shift_id=100, employee_id=10)
+        mock_update.return_value = Obj(shift_id=100, employee_id=10)
+
         resp = self.client.patch(
             "/api/assignments/100/10",
-            json={"preference_score": 4},
+            json={},  # AssignmentUpdate currently has no fields
         )
         self.assertEqual(resp.status_code, 200, resp.text)
-        self.assertEqual(resp.json()["preference_score"], 4)
+        data = resp.json()
+        self.assertEqual(data["shift_id"], 100)
+        self.assertEqual(data["employee_id"], 10)
 
     @patch("assignment.router.service.get_assignment_for_org")
     def test_update_assignment_404(self, mock_get_for_org):
         mock_get_for_org.return_value = None
-        resp = self.client.patch("/api/assignments/100/10", json={"preference_score": 1})
+        resp = self.client.patch("/api/assignments/100/10", json={})
         self.assertEqual(resp.status_code, 404)
         self.assertEqual(resp.json()["detail"], "assignment not found")
 
     @patch("assignment.router.service.update_assignment")
     @patch("assignment.router.service.get_assignment_for_org")
     def test_update_assignment_409(self, mock_get_for_org, mock_update):
-        mock_get_for_org.return_value = Obj(shift_id=100, employee_id=10, preference_score=2)
+        mock_get_for_org.return_value = Obj(shift_id=100, employee_id=10)
         mock_update.side_effect = IntegrityError("stmt", "params", Exception("dup"))
-        resp = self.client.patch("/api/assignments/100/10", json={"preference_score": 5})
+        resp = self.client.patch("/api/assignments/100/10", json={})
         self.assertEqual(resp.status_code, 409)
         self.assertEqual(resp.json()["detail"], "assignment already exists for this shift/employee")
 
@@ -129,8 +132,10 @@ class AssignmentRouterTests(unittest.TestCase):
     @patch("assignment.router.service.delete_assignment")
     @patch("assignment.router.service.get_assignment_for_org")
     def test_delete_assignment_200(self, mock_get_for_org, mock_delete):
-        mock_get_for_org.return_value = Obj(shift_id=100, employee_id=10, preference_score=None)
+        # Closest decorator (get_assignment_for_org) -> first arg
+        mock_get_for_org.return_value = Obj(shift_id=100, employee_id=10)
         mock_delete.return_value = None
+
         resp = self.client.delete("/api/assignments/100/10")
         self.assertEqual(resp.status_code, 200, resp.text)
         self.assertEqual(resp.json(), {"message": "assignment deleted"})
@@ -139,5 +144,5 @@ class AssignmentRouterTests(unittest.TestCase):
     def test_delete_assignment_404(self, mock_get_for_org):
         mock_get_for_org.return_value = None
         resp = self.client.delete("/api/assignments/100/10")
-        self.assertEqual(resp.status_code, 404)
+        self.assertEqual(resp.status_code, 404, resp.text)
         self.assertEqual(resp.json()["detail"], "assignment not found")

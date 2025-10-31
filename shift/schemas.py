@@ -10,9 +10,9 @@ class ShiftSchema(BaseModel):
     role_id: Optional[int] = None
     start_at: datetime
     end_at: datetime
-    canceled_at: Optional[datetime] = None
-    cancel_reason: Optional[str] = None
     notes: Optional[str] = None
+    required_staff_count: int = 1
+
     model_config = ConfigDict(from_attributes=True)
 
 class ShiftCreatePayload(BaseModel):
@@ -20,8 +20,10 @@ class ShiftCreatePayload(BaseModel):
     location_id: Optional[int] = None
     role_id: Optional[int] = None
     start_at: datetime = Field(..., description="TZ-aware ISO8601")
-    end_at:   datetime = Field(..., description="TZ-aware ISO8601")
+    end_at: datetime = Field(..., description="TZ-aware ISO8601")
     notes: Optional[str] = None
+    required_staff_count: int = Field(1, ge=1)
+
     model_config = ConfigDict(extra="forbid")
 
     @field_validator("start_at", "end_at")
@@ -37,6 +39,7 @@ class ShiftCreatePayload(BaseModel):
             raise ValueError("end_at must be after start_at")
         return self
 
+# Internal DTO the service uses
 class ShiftCreate(BaseModel):
     org_id: int
     schedule_id: int
@@ -45,6 +48,7 @@ class ShiftCreate(BaseModel):
     start_at: datetime
     end_at: datetime
     notes: Optional[str] = None
+    required_staff_count: int = Field(1, ge=1)
 
 class ShiftUpdate(BaseModel):
     schedule_id: Optional[int] = None
@@ -52,9 +56,8 @@ class ShiftUpdate(BaseModel):
     role_id: Optional[int] = None
     start_at: Optional[datetime] = None
     end_at: Optional[datetime] = None
-    canceled_at: Optional[datetime] = None
-    cancel_reason: Optional[str] = None
     notes: Optional[str] = None
+    required_staff_count: Optional[int] = Field(None, ge=1)
 
     @model_validator(mode="after")
     def check_dates_if_both_present(self):
