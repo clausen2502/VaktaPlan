@@ -17,8 +17,8 @@ def get_jobrole_for_org(db: Session, jobrole_id: int, org_id: int) -> Optional[J
     stmt = select(JobRole).where(JobRole.id == jobrole_id, JobRole.org_id == org_id)
     return db.scalars(stmt).first()
 
-def create_jobrole(db: Session, loc: JobRoleCreate) -> JobRole:
-    db_role = JobRole(org_id=loc.org_id, name=loc.name)
+def create_jobrole(db: Session, role: JobRoleCreate) -> JobRole:
+    db_role = JobRole(org_id=role.org_id, name=role.name, weekly_hours_cap=role.weekly_hours_cap)
     db.add(db_role)
     db.commit()
     db.refresh(db_role)
