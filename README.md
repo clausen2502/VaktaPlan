@@ -185,9 +185,8 @@ curl -sS "$BASE_URL/jobroles" -H "$(auth)"
 curl -sS "$BASE_URL/jobroles/{jobrole_id}" -H "$(auth)"
 
 ### Create job role
-curl -sS -X POST "$BASE_URL/jobroles" \
-  -H "$json" -H "$(auth)" \
-  -d '{"name":"Starfsmaður á kassa"}'
+curl -sS -X POST "$BASE_URL/jobroles" -H "$json" -H "$(auth)" \
+  -d '{"name":"Barista","weekly_hours_cap":30}'
 
 ### Update job role
 curl -sS -X PATCH "$BASE_URL/jobroles/{jobrole_id}" \

@@ -35,7 +35,7 @@ class JobRoleRouterTests(unittest.TestCase):
         mock_get.return_value = [Obj(id=1, org_id=1, name="Nurse")]
         resp = self.client.get("/api/jobroles")
         self.assertEqual(resp.status_code, 200, resp.text)
-        self.assertEqual(resp.json(), [{"id": 1, "org_id": 1, "name": "Nurse"}])
+        self.assertEqual(resp.json(), [{"id": 1, "org_id": 1, "name": "Nurse", "weekly_hours_cap": None}])
 
     @patch("jobrole.router.service.get_jobroles")
     def test_get_jobroles_defaults_to_user_org(self, mock_get):
@@ -64,6 +64,22 @@ class JobRoleRouterTests(unittest.TestCase):
         resp = self.client.post("/api/jobroles", json={"name": "Receptionist"})
         self.assertEqual(resp.status_code, 409, resp.text)
         self.assertEqual(resp.json()["detail"], "jobrole name already exists in this organization")
+
+    @patch("jobrole.router.service.create_jobrole")
+    def test_create_jobrole_with_weekly_cap(self, mock_create):
+        mock_create.return_value = Obj(id=5, org_id=1, name="Barista", weekly_hours_cap=24)
+
+        resp = self.client.post(
+            "/api/jobroles",
+            headers={"Content-Type": "application/json"},
+            json={"name": "Barista", "weekly_hours_cap": 24},
+        )
+
+        self.assertEqual(resp.status_code, 201, resp.text)
+        body = resp.json()
+        self.assertEqual(body["id"], 5)
+        self.assertEqual(body["name"], "Barista")
+        self.assertEqual(body["weekly_hours_cap"], 24)
 
     # --- GET /{id} ---
 

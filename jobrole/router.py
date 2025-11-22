@@ -26,7 +26,7 @@ def jobrole_detail(jobrole_id: int, db: Session = Depends(get_db), user=Depends(
 # Create jobrole
 @jobrole_router.post("", response_model=JobRoleSchema, status_code=status.HTTP_201_CREATED)
 def jobrole_post(payload: JobRoleCreatePayload, db: Session = Depends(get_db), user=Depends(get_current_active_user), _mgr = Depends(require_manager)):
-    internal = JobRoleCreate(org_id=user.org_id, name=payload.name)
+    internal = JobRoleCreate(org_id=user.org_id, name=payload.name, weekly_hours_cap=payload.weekly_hours_cap)
     try:
         return service.create_jobrole(db, internal)
     except IntegrityError as e:
