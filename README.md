@@ -278,7 +278,7 @@ curl -sS "$BASE_URL/assignments/{shift_id}/{employee_id}" -H "$(auth)"
 ### Create (manager only)
 curl -sS -X POST "$BASE_URL/assignments" \
   -H "$json" -H "$(auth)" \
-  -d '{"shift_id": 1, "employee_id": 1, "preference_score": 4}'
+  -d '{"shift_id": 1, "employee_id": 1}'
 
 ### Update (manager only, only preference_score is editable)
 curl -sS -X PATCH "$BASE_URL/assignments/1/1" \
