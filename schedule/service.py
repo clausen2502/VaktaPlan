@@ -1,5 +1,5 @@
 from __future__ import annotations
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import Optional, List
 
 from fastapi import HTTPException
@@ -16,7 +16,7 @@ def get_schedules(
     active_on: Optional[date] = None,
     start_from: Optional[date] = None,
     end_to: Optional[date] = None,
-) -> List[Schedule]:
+    ) -> List[Schedule]:
     stmt = select(Schedule).where(Schedule.org_id == org_id)
     if active_on is not None:
         stmt = stmt.where(and_(Schedule.range_start <= active_on, Schedule.range_end >= active_on))
@@ -66,3 +66,22 @@ def delete_schedule(db: Session, schedule_id: int) -> None:
     if row:
         db.delete(row)
         db.commit()
+
+def publish_schedule(db: Session, *, schedule_id: int, org_id: int,) -> Schedule:
+    """
+    Mark a schedule as published for the given org.
+    - 404 if schedule not found or belongs to another org
+    - if it is already published, just return it
+    """
+    sched = db.get(Schedule, schedule_id)
+    if not sched or sched.org_id != org_id:
+        raise HTTPException(status_code=404, detail="schedule not found")
+
+    if sched.status != ScheduleStatus.published:
+        sched.status = ScheduleStatus.published
+        sched.published_at = datetime.now(timezone.utc)
+        db.commit()
+        db.refresh(sched)
+
+    return sched
+

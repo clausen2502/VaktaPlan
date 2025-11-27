@@ -434,6 +434,129 @@ class AutoAssignServiceTests(unittest.TestCase):
         rows = self.db.query(Assignment).all()
         self.assertEqual(len(rows), 0)
 
+    # -------------------------------------------------
+    # 8) reassign_all: old (invalid) assignment is removed,
+    #    new valid one is created
+    # -------------------------------------------------
+    def test_auto_assign_reassign_all_replaces_existing_assignments(self):
+        base_time = datetime(2025, 1, 3, 9, 0, tzinfo=timezone.utc)
+
+        # One shift needing 1 staff
+        shift = Shift(
+            org_id=self.org.id,
+            schedule_id=self.schedule.id,
+            location_id=self.location.id,
+            role_id=self.role.id,
+            start_at=base_time,
+            end_at=base_time + timedelta(hours=8),
+            required_staff_count=1,
+            notes=None,
+        )
+        self.db.add(shift)
+
+        # Second employee
+        emp2 = Employee(org_id=self.org.id, display_name="Emp2")
+        self.db.add(emp2)
+        self.db.flush()
+
+        # Make Emp1 unavailable for this shift, so they should never be picked
+        from unavailability.models import Unavailability
+
+        unavail = Unavailability(
+            employee_id=self.emp1.id,
+            start_at=base_time,
+            end_at=base_time + timedelta(hours=8),
+            reason="Busy",
+        )
+        self.db.add(unavail)
+
+        # Old assignment: Emp1 is assigned even though they shouldn't be
+        old_assignment = Assignment(
+            shift_id=shift.id,
+            employee_id=self.emp1.id,
+        )
+        self.db.add(old_assignment)
+        self.db.commit()
+
+        # Sanity check before
+        before_rows = self.db.query(Assignment).all()
+        self.assertEqual(len(before_rows), 1)
+        self.assertEqual(before_rows[0].employee_id, self.emp1.id)
+
+        # Run auto_assign with reassign_all → should drop Emp1 and pick Emp2
+        result = auto_assign(
+            db=self.db,
+            schedule_id=self.schedule.id,
+            start_date=date(2025, 1, 1),
+            end_date=date(2025, 1, 7),
+            policy="reassign_all",
+            dry_run=False,
+        )
+
+        self.assertEqual(result["policy"], "reassign_all")
+        self.assertEqual(result["assigned"], 1)
+
+        after_rows = self.db.query(Assignment).all()
+        self.assertEqual(len(after_rows), 1)
+        self.assertEqual(after_rows[0].shift_id, shift.id)
+        # Now Emp2 should be assigned (Emp1 is blocked by unavailability)
+        self.assertEqual(after_rows[0].employee_id, emp2.id)
+
+    # -------------------------------------------------
+    # 9) reassign_all + dry_run=True: existing assignments
+    #    stay untouched, nothing is deleted
+    # -------------------------------------------------
+    def test_auto_assign_reassign_all_dry_run_does_not_modify_db(self):
+        base_time = datetime(2025, 1, 4, 9, 0, tzinfo=timezone.utc)
+
+        shift = Shift(
+            org_id=self.org.id,
+            schedule_id=self.schedule.id,
+            location_id=self.location.id,
+            role_id=self.role.id,
+            start_at=base_time,
+            end_at=base_time + timedelta(hours=8),
+            required_staff_count=1,
+            notes=None,
+        )
+        self.db.add(shift)
+        self.db.flush()
+
+        # Existing assignment for Emp1
+        existing = Assignment(
+            shift_id=shift.id,
+            employee_id=self.emp1.id,
+        )
+        self.db.add(existing)
+        self.db.commit()
+
+        count_before = self.db.query(Assignment).count()
+        rows_before = self.db.query(Assignment).all()
+        self.assertEqual(count_before, 1)
+        self.assertEqual(rows_before[0].employee_id, self.emp1.id)
+
+        result = auto_assign(
+            db=self.db,
+            schedule_id=self.schedule.id,
+            start_date=date(2025, 1, 1),
+            end_date=date(2025, 1, 7),
+            policy="reassign_all",
+            dry_run=True,
+        )
+
+        # dry_run: no deletes, no inserts
+        count_after = self.db.query(Assignment).count()
+        rows_after = self.db.query(Assignment).all()
+
+        self.assertEqual(result["policy"], "reassign_all")
+        # Shift is already full, so auto_assign will not "assign" anything
+        self.assertEqual(result["assigned"], 0)
+
+        self.assertEqual(count_after, count_before)
+        self.assertEqual(len(rows_after), 1)
+        self.assertEqual(rows_after[0].shift_id, shift.id)
+        self.assertEqual(rows_after[0].employee_id, self.emp1.id)
+
 
 if __name__ == "__main__":
     unittest.main()

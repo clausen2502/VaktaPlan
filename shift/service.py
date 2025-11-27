@@ -1,4 +1,3 @@
-# shift/service.py
 from __future__ import annotations
 from datetime import datetime
 from typing import Optional
@@ -22,7 +21,7 @@ def get_shifts(
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
     notes: Optional[str] = None,
-) -> list[Shift]:
+    ) -> list[Shift]:
     stmt = select(Shift)
     if org_id is not None:
         stmt = stmt.where(Shift.org_id == org_id)
@@ -50,11 +49,11 @@ def create_shift(db: Session, shift: ShiftCreate) -> Shift:
         start_at=shift.start_at,
         end_at=shift.end_at,
         notes=shift.notes,
-        required_staff_count=shift.required_staff_count,   # NEW
+        required_staff_count=shift.required_staff_count,
     )
     if row.start_at >= row.end_at:
         raise HTTPException(status_code=422, detail="start_at must be before end_at")
-    if row.required_staff_count < 1:                        # runtime guard (belt & suspenders)
+    if row.required_staff_count < 1:
         raise HTTPException(status_code=422, detail="required_staff_count must be >= 1")
 
     db.add(row)

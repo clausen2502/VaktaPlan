@@ -23,7 +23,7 @@ def list_schedules(
     end_to: Optional[date] = Query(None, description="range_end <= end_to"),
     db: Session = Depends(get_db),
     user = Depends(get_current_active_user),
-):
+    ):
     return service.get_schedules(
         db,
         org_id=user.org_id,
@@ -38,7 +38,7 @@ def get_schedule(
     schedule_id: int,
     db: Session = Depends(get_db),
     user = Depends(get_current_active_user),
-):
+    ):
     obj = service.get_schedule_for_org(db, schedule_id, user.org_id)
     if not obj:
         raise HTTPException(status_code=404, detail="schedule not found")
@@ -51,10 +51,10 @@ def create_schedule(
     db: Session = Depends(get_db),
     user = Depends(get_current_active_user),
     _mgr = Depends(require_manager),
-):
+    ):
     dto = ScheduleCreate(
         org_id=user.org_id,
-        created_by=user.id,  # who created the schedule
+        created_by=user.id,
         range_start=payload.range_start,
         range_end=payload.range_end,
         version=payload.version,
@@ -75,9 +75,26 @@ def delete_schedule(
     db: Session = Depends(get_db),
     user = Depends(get_current_active_user),
     _mgr = Depends(require_manager),
-):
+    ):
     obj = service.get_schedule_for_org(db, schedule_id, user.org_id)
     if not obj:
         raise HTTPException(status_code=404, detail="schedule not found")
     service.delete_schedule(db, schedule_id)
     return {"message": "schedule deleted"}
+
+# Publish schedule (manager only)
+@schedule_router.post("/{schedule_id}/publish", response_model=ScheduleSchema, status_code=status.HTTP_200_OK)
+def publish_schedule(
+    schedule_id: int,
+    db: Session = Depends(get_db),
+    user = Depends(get_current_active_user),
+    _mgr = Depends(require_manager),
+    ):
+    """
+    Change a schedule from draft -> published for the current user's org.
+    """
+    return service.publish_schedule(
+        db,
+        schedule_id=schedule_id,
+        org_id=user.org_id,
+    )

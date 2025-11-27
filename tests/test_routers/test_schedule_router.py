@@ -2,7 +2,9 @@ import unittest
 from types import SimpleNamespace as Obj
 from datetime import date
 from unittest.mock import patch
+
 from fastapi.testclient import TestClient
+from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 
 from main import app
@@ -23,10 +25,10 @@ class ScheduleRouterTests(unittest.TestCase):
 
         # Fake logged-in manager scoped to org 1
         app.dependency_overrides[get_current_active_user] = lambda: Obj(
-            org_id=1, id=123, is_manager=True   # <-- add is_manager for safety
+            org_id=1, id=123, is_manager=True
         )
-        # Bypass manager check entirely (POST/DELETE)
-        app.dependency_overrides[require_manager] = lambda: None  # <-- no-op
+        # Bypass manager check entirely (POST/DELETE/PUBLISH)
+        app.dependency_overrides[require_manager] = lambda: None
 
         self.client = TestClient(app)
 
@@ -39,11 +41,20 @@ class ScheduleRouterTests(unittest.TestCase):
     def test_list_schedules_passes_filters_and_org(self, mock_get):
         mock_get.return_value = [
             Obj(
-                id=1, org_id=1, range_start=date(2025,10,1), range_end=date(2025,10,31),
-                version=1, status="draft", created_by=123, published_at=None
+                id=1,
+                org_id=1,
+                range_start=date(2025, 10, 1),
+                range_end=date(2025, 10, 31),
+                version=1,
+                status="draft",
+                created_by=123,
+                published_at=None,
             )
         ]
-        r = self.client.get("/api/schedules?active_on=2025-10-15&start_from=2025-10-01&end_to=2025-12-31")
+        r = self.client.get(
+            "/api/schedules?"
+            "active_on=2025-10-15&start_from=2025-10-01&end_to=2025-12-31"
+        )
         self.assertEqual(r.status_code, 200, r.text)
         body = r.json()
         self.assertEqual(body[0]["id"], 1)
@@ -58,8 +69,14 @@ class ScheduleRouterTests(unittest.TestCase):
     @patch("schedule.router.service.get_schedule_for_org")
     def test_get_schedule_ok(self, mock_get_one):
         mock_get_one.return_value = Obj(
-            id=9, org_id=1, range_start=date(2025,11,1), range_end=date(2025,11,30),
-            version=2, status="draft", created_by=123, published_at=None
+            id=9,
+            org_id=1,
+            range_start=date(2025, 11, 1),
+            range_end=date(2025, 11, 30),
+            version=2,
+            status="draft",
+            created_by=123,
+            published_at=None,
         )
         r = self.client.get("/api/schedules/9")
         self.assertEqual(r.status_code, 200, r.text)
@@ -76,10 +93,20 @@ class ScheduleRouterTests(unittest.TestCase):
     @patch("schedule.router.service.create_schedule")
     def test_create_schedule_201(self, mock_create):
         mock_create.return_value = Obj(
-            id=3, org_id=1, range_start=date(2025,12,1), range_end=date(2025,12,31),
-            version=1, status="draft", created_by=123, published_at=None
+            id=3,
+            org_id=1,
+            range_start=date(2025, 12, 1),
+            range_end=date(2025, 12, 31),
+            version=1,
+            status="draft",
+            created_by=123,
+            published_at=None,
         )
-        payload = {"range_start": "2025-12-01", "range_end": "2025-12-31", "version": 1}
+        payload = {
+            "range_start": "2025-12-01",
+            "range_end": "2025-12-31",
+            "version": 1,
+        }
         r = self.client.post("/api/schedules", json=payload)
         self.assertEqual(r.status_code, 201, r.text)
         self.assertEqual(r.json()["id"], 3)
@@ -88,10 +115,17 @@ class ScheduleRouterTests(unittest.TestCase):
     def test_create_schedule_409_conflict(self, mock_create):
         # router maps IntegrityError to 409
         mock_create.side_effect = IntegrityError(None, None, None)
-        payload = {"range_start": "2025-12-01", "range_end": "2025-12-31", "version": 1}
+        payload = {
+            "range_start": "2025-12-01",
+            "range_end": "2025-12-31",
+            "version": 1,
+        }
         r = self.client.post("/api/schedules", json=payload)
         self.assertEqual(r.status_code, 409)
-        self.assertEqual(r.json()["detail"], "schedule already exists for this range and version")
+        self.assertEqual(
+            r.json()["detail"],
+            "schedule already exists for this range and version",
+        )
 
     # ---------- DELETE ----------
     @patch("schedule.router.service.delete_schedule")
@@ -108,6 +142,42 @@ class ScheduleRouterTests(unittest.TestCase):
         mock_get_one.return_value = None
         r = self.client.delete("/api/schedules/404404")
         self.assertEqual(r.status_code, 404)
+        self.assertEqual(r.json()["detail"], "schedule not found")
+
+    # ---------- PUBLISH ----------
+    @patch("schedule.router.service.publish_schedule")
+    def test_publish_schedule_200(self, mock_publish):
+        mock_publish.return_value = Obj(
+            id=7,
+            org_id=1,
+            range_start=date(2025, 10, 1),
+            range_end=date(2025, 10, 7),
+            version=1,
+            status="published",
+            created_by=123,
+            published_at=None,
+        )
+
+        r = self.client.post("/api/schedules/7/publish")
+        self.assertEqual(r.status_code, 200, r.text)
+
+        data = r.json()
+        self.assertEqual(data["id"], 7)
+        self.assertEqual(data["status"], "published")
+
+        # verify the router forwards org_id and schedule_id
+        _, kwargs = mock_publish.call_args
+        self.assertEqual(kwargs["schedule_id"], 7)
+        self.assertEqual(kwargs["org_id"], 1)
+
+    @patch("schedule.router.service.publish_schedule")
+    def test_publish_schedule_404(self, mock_publish):
+        mock_publish.side_effect = HTTPException(
+            status_code=404, detail="schedule not found"
+        )
+
+        r = self.client.post("/api/schedules/999/publish")
+        self.assertEqual(r.status_code, 404, r.text)
         self.assertEqual(r.json()["detail"], "schedule not found")
 
 

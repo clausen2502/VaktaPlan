@@ -18,7 +18,7 @@ def list_shifts(
     notes: Optional[str] = None,
     db: Session = Depends(get_db),
     user = Depends(get_current_active_user),
-):
+    ):
     return service.get_shifts(
         db,
         org_id=user.org_id,

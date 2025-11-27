@@ -320,6 +320,11 @@ curl -sS -X POST "$BASE_URL/schedules" \
 ### Delete a schedule
 curl -i -X DELETE "$BASE_URL/schedules/{schedule_id}" -H "$(auth)"
 
+### Publish a schedule (draft → published)
+SCHED_ID=1
+curl -sS -X POST "$BASE_URL/schedules/$SCHED_ID/publish" \
+  -H "$(auth)" -H "$json"
+
 # Weekly Template
 
 ### List weekly template rows for a schedule
