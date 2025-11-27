@@ -410,7 +410,7 @@ If no candidates pass all constraints for a shift, it is counted as skipped_no_c
 
 ### Fill empty seats on shifts in a schedule and date range
 SCHED_ID=1
-curl -sS -X POST "$BASE_URL/assignments/auto-assign"
+curl -sS -X POST "$BASE_URL/assignments/auto-assign" \
   -H "$(auth)" -H "$json"
   -d '{
   "schedule_id": '"$SCHED_ID"',
@@ -422,7 +422,7 @@ curl -sS -X POST "$BASE_URL/assignments/auto-assign"
 
 ### Full recompute for a week, deletes existing assignments for shifts in this schedule and range, then recomputes everything
 SCHED_ID=1
-curl -sS -X POST "$BASE_URL/assignments/auto-assign"
+curl -sS -X POST "$BASE_URL/assignments/auto-assign" \
   -H "$(auth)" -H "$json"
   -d '{
   "schedule_id": '"$SCHED_ID"',
@@ -434,7 +434,7 @@ curl -sS -X POST "$BASE_URL/assignments/auto-assign"
 
 ### Dry-run preview (no DB writes), returns how many seats would be assigned, but does not create any assignments
 SCHED_ID=1
-curl -sS -X POST "$BASE_URL/assignments/auto-assign"
+curl -sS -X POST "$BASE_URL/assignments/auto-assign" \
   -H "$(auth)" -H "$json"
   -d '{
   "schedule_id": '"$SCHED_ID"',
