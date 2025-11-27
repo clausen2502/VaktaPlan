@@ -26,8 +26,10 @@ class Shift(Base):
     location_id: Mapped[int | None] = mapped_column(
         ForeignKey("locations.id", ondelete="SET NULL"), index=True, nullable=True
     )
-    role_id: Mapped[int | None] = mapped_column(
-        ForeignKey("job_roles.id", ondelete="SET NULL"), index=True, nullable=True
+    role_id: Mapped[int] = mapped_column(
+        ForeignKey("job_roles.id", ondelete="RESTRICT"),
+        index=True,
+        nullable=False,
     )
 
     start_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

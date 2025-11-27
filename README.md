@@ -377,4 +377,69 @@ curl -sS -X POST "$BASE_URL/schedules/$SCHED_ID/weekly-template/generate" \
 SCHED_ID=1
 curl -sS "$BASE_URL/shifts?schedule_id=$SCHED_ID" -H "$(auth)"
 
+# Auto Assign Service
 
+### The auto-assign service creates a suggested schedule for a given schedule and date range.
+#### Auto-assign accounts for:
+- Shifts in the given schedule and date range
+- Employees in the same organization
+- Unavailability entries (hard block)
+- Preferences (soft preferences + hard blocks)
+- Job role weekly caps
+
+### For each shift, the service figures out how many seats are needed and builds a candidate list of employees who:
+- belong to the same org
+- are not already assigned to that exact shift
+- do not have overlapping Unavailability
+- do not violate weekly_hours_cap for that role in the ISO week
+- do not have an overlapping Preference with do_not_schedule=true
+
+### Calculates a preference score per candidate:
+- looks at Preference rows on the same weekday that overlap the shift
+- if any overlapping pref has do_not_schedule=true → candidate is hard-blocked
+- otherwise uses the max weight of overlapping preferences (default 0)
+
+### Picks candidates greedily for each seat, ordered by:
+- highest preference score
+- then lowest hours already worked on that role in the same week
+- then lowest total hours in this auto-assign window
+- then lowest employee_id just to keep it deterministic
+
+If a shift is already full (required_staff_count reached), it is counted as skipped_full.
+If no candidates pass all constraints for a shift, it is counted as skipped_no_candidates
+
+### Fill empty seats on shifts in a schedule and date range
+SCHED_ID=1
+curl -sS -X POST "$BASE_URL/assignments/auto-assign"
+  -H "$(auth)" -H "$json"
+  -d '{
+  "schedule_id": '"$SCHED_ID"',
+  "start_date": "2025-10-01",
+  "end_date": "2025-10-07",
+  "policy": "fill_missing",
+  "dry_run": false
+}'
+
+### Full recompute for a week, deletes existing assignments for shifts in this schedule and range, then recomputes everything
+SCHED_ID=1
+curl -sS -X POST "$BASE_URL/assignments/auto-assign"
+  -H "$(auth)" -H "$json"
+  -d '{
+  "schedule_id": '"$SCHED_ID"',
+  "start_date": "2025-10-01",
+  "end_date": "2025-10-07",
+  "policy": "reassign_all",
+  "dry_run": false
+}'
+
+### Dry-run preview (no DB writes), returns how many seats would be assigned, but does not create any assignments
+SCHED_ID=1
+curl -sS -X POST "$BASE_URL/assignments/auto-assign"
+  -H "$(auth)" -H "$json"
+  -d '{
+  "schedule_id": '"$SCHED_ID"',
+  "start_date": "2025-10-01",
+  "end_date": "2025-10-07",
+  "policy": "fill_missing",
+  "dry_run": true
+}'
