@@ -13,6 +13,9 @@ from preference.models import Preference
 from unavailability.models import Unavailability
 from jobrole.models import JobRole
 
+#TODO: Optimize auto assign service by pre-loading unavailability, 
+    # preferences and existing assignments instead of querying in inner loops.
+
 # ---------- helpers ----------
 
 def _aware(dt: datetime) -> datetime:
