@@ -18,20 +18,20 @@ def get_assignments(
     org_id: int,
     shift_id: Optional[int] = None,
     employee_id: Optional[int] = None,
-) -> List[Assignment]:
-    stmt = (
-        select(Assignment)
-        .join(Shift, Shift.id == Assignment.shift_id)
-        .join(Employee, Employee.id == Assignment.employee_id)
-        .where(Shift.org_id == org_id, Employee.org_id == org_id)
-    )
-    if shift_id is not None:
-        stmt = stmt.where(Assignment.shift_id == shift_id)
-    if employee_id is not None:
-        stmt = stmt.where(Assignment.employee_id == employee_id)
+    ) -> List[Assignment]:
+        stmt = (
+            select(Assignment)
+            .join(Shift, Shift.id == Assignment.shift_id)
+            .join(Employee, Employee.id == Assignment.employee_id)
+            .where(Shift.org_id == org_id, Employee.org_id == org_id)
+        )
+        if shift_id is not None:
+            stmt = stmt.where(Assignment.shift_id == shift_id)
+        if employee_id is not None:
+            stmt = stmt.where(Assignment.employee_id == employee_id)
 
-    stmt = stmt.order_by(Assignment.shift_id, Assignment.employee_id)
-    return list(db.scalars(stmt))
+        stmt = stmt.order_by(Assignment.shift_id, Assignment.employee_id)
+        return list(db.scalars(stmt))
 
 
 # Single (org-scoped)
@@ -65,7 +65,7 @@ def create_assignment(db: Session, dto: AssignmentCreate) -> Assignment:
         employee_id=dto.employee_id,
     )
     db.add(row)
-    # Let IntegrityError bubble; router maps to 409 on duplicate composite key
+    # Let IntegrityError bubble, router maps to 409 on duplicate composite key
     db.commit()
     db.refresh(row)
     return row
@@ -78,18 +78,18 @@ def update_assignment(
     patch: AssignmentUpdate,
     *,
     org_id: int,
-) -> Assignment:
-    row = get_assignment_for_org(db, shift_id, employee_id, org_id)
-    if not row:
-        raise HTTPException(status_code=404, detail="assignment not found")
+    ) -> Assignment:
+        row = get_assignment_for_org(db, shift_id, employee_id, org_id)
+        if not row:
+            raise HTTPException(status_code=404, detail="assignment not found")
 
-    data = patch.model_dump(exclude_unset=True, exclude_none=True)
-    for k, v in data.items():
-        setattr(row, k, v)
+        data = patch.model_dump(exclude_unset=True, exclude_none=True)
+        for k, v in data.items():
+            setattr(row, k, v)
 
-    db.commit()
-    db.refresh(row)
-    return row
+        db.commit()
+        db.refresh(row)
+        return row
 
 
 def delete_assignment(db: Session, shift_id: int, employee_id: int) -> None:
