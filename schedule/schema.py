@@ -7,6 +7,7 @@ from .models import ScheduleStatus
 class ScheduleSchema(BaseModel):
     id: int
     org_id: int
+    name: str
     range_start: date
     range_end: date
     version: int
@@ -16,6 +17,7 @@ class ScheduleSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 class ScheduleCreatePayload(BaseModel):
+    name: str = Field(..., description="Name for this schedule")
     range_start: date = Field(..., description="Inclusive start date of the schedule window")
     range_end: date   = Field(..., description="Inclusive end date of the schedule window")
     version: Optional[int] = Field(None, description="If omitted, next version is chosen automatically")
@@ -29,7 +31,15 @@ class ScheduleCreatePayload(BaseModel):
 
 class ScheduleCreate(BaseModel):
     org_id: int
+    name: str
     created_by: int
     range_start: date
     range_end: date
+    version: Optional[int] = None
+
+class ScheduleUpdate(BaseModel):
+    name: Optional[str] = None
+    range_start: Optional[date] = None
+    range_end: Optional[date] = None
+    status: Optional[str] = None
     version: Optional[int] = None

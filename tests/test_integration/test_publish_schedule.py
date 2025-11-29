@@ -83,7 +83,7 @@ class IntegrationFlowTests(unittest.TestCase):
         # 4) Create a schedule (draft)
         r = self.client.post(
             "/api/schedules",
-            json={"range_start": "2025-10-01", "range_end": "2025-10-07"},
+            json={"name": "Vika 40 full flow", "range_start": "2025-10-01", "range_end": "2025-10-07"},
         )
         self.assertEqual(r.status_code, 201, r.text)
         schedule = r.json()
@@ -151,7 +151,7 @@ class IntegrationFlowTests(unittest.TestCase):
         # 4) Create a schedule
         r = self.client.post(
             "/api/schedules",
-            json={"range_start": "2025-10-01", "range_end": "2025-10-07"},
+            json={"name": "Vika 40 full flow", "range_start": "2025-10-01", "range_end": "2025-10-07"},
         )
         self.assertEqual(r.status_code, 201, r.text)
         schedule = r.json()

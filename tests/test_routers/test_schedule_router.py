@@ -43,6 +43,7 @@ class ScheduleRouterTests(unittest.TestCase):
             Obj(
                 id=1,
                 org_id=1,
+                name="Október 2025",
                 range_start=date(2025, 10, 1),
                 range_end=date(2025, 10, 31),
                 version=1,
@@ -58,6 +59,7 @@ class ScheduleRouterTests(unittest.TestCase):
         self.assertEqual(r.status_code, 200, r.text)
         body = r.json()
         self.assertEqual(body[0]["id"], 1)
+        self.assertEqual(body[0]["name"], "Október 2025")
         # verify router forwarded filters + org_id
         _, kwargs = mock_get.call_args
         self.assertEqual(kwargs["org_id"], 1)
@@ -71,6 +73,7 @@ class ScheduleRouterTests(unittest.TestCase):
         mock_get_one.return_value = Obj(
             id=9,
             org_id=1,
+            name="Nóvember 2025",
             range_start=date(2025, 11, 1),
             range_end=date(2025, 11, 30),
             version=2,
@@ -81,6 +84,7 @@ class ScheduleRouterTests(unittest.TestCase):
         r = self.client.get("/api/schedules/9")
         self.assertEqual(r.status_code, 200, r.text)
         self.assertEqual(r.json()["id"], 9)
+        self.assertEqual(r.json()["name"], "Nóvember 2025")
 
     @patch("schedule.router.service.get_schedule_for_org")
     def test_get_schedule_404(self, mock_get_one):
@@ -95,6 +99,7 @@ class ScheduleRouterTests(unittest.TestCase):
         mock_create.return_value = Obj(
             id=3,
             org_id=1,
+            name="Desember 2025",
             range_start=date(2025, 12, 1),
             range_end=date(2025, 12, 31),
             version=1,
@@ -103,6 +108,7 @@ class ScheduleRouterTests(unittest.TestCase):
             published_at=None,
         )
         payload = {
+            "name": "Desember 2025",
             "range_start": "2025-12-01",
             "range_end": "2025-12-31",
             "version": 1,
@@ -110,12 +116,14 @@ class ScheduleRouterTests(unittest.TestCase):
         r = self.client.post("/api/schedules", json=payload)
         self.assertEqual(r.status_code, 201, r.text)
         self.assertEqual(r.json()["id"], 3)
+        self.assertEqual(r.json()["name"], "Desember 2025")
 
     @patch("schedule.router.service.create_schedule")
     def test_create_schedule_409_conflict(self, mock_create):
         # router maps IntegrityError to 409
         mock_create.side_effect = IntegrityError(None, None, None)
         payload = {
+            "name": "Desember 2025",
             "range_start": "2025-12-01",
             "range_end": "2025-12-31",
             "version": 1,
@@ -131,7 +139,7 @@ class ScheduleRouterTests(unittest.TestCase):
     @patch("schedule.router.service.delete_schedule")
     @patch("schedule.router.service.get_schedule_for_org")
     def test_delete_schedule_200(self, mock_get_one, mock_delete):
-        mock_get_one.return_value = Obj(id=5, org_id=1)
+        mock_get_one.return_value = Obj(id=5, org_id=1, name="Eyða mér")
         mock_delete.return_value = None
         r = self.client.delete("/api/schedules/5")
         self.assertEqual(r.status_code, 200)
@@ -150,6 +158,7 @@ class ScheduleRouterTests(unittest.TestCase):
         mock_publish.return_value = Obj(
             id=7,
             org_id=1,
+            name="Vika 1",
             range_start=date(2025, 10, 1),
             range_end=date(2025, 10, 7),
             version=1,
@@ -164,6 +173,7 @@ class ScheduleRouterTests(unittest.TestCase):
         data = r.json()
         self.assertEqual(data["id"], 7)
         self.assertEqual(data["status"], "published")
+        self.assertEqual(data["name"], "Vika 1")
 
         # verify the router forwards org_id and schedule_id
         _, kwargs = mock_publish.call_args
