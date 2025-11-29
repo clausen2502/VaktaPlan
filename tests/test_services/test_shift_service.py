@@ -46,6 +46,7 @@ class ShiftServiceTests(unittest.TestCase):
         # --- seed a schedule (required by FK on shifts) ---
         sched = Schedule(
             org_id=self.org_id,
+            name="Shift test schedule",
             range_start=datetime(2025, 10, 16, tzinfo=timezone.utc).date(),
             range_end=datetime(2025, 10, 20, tzinfo=timezone.utc).date(),
             version=1,

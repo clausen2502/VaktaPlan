@@ -56,7 +56,7 @@ def get_unavailabilities(
     employee_id: Optional[int] = None,
     overlaps_start: Optional[datetime] = None,
     overlaps_end: Optional[datetime] = None,
-) -> List[Unavailability]:
+    ) -> List[Unavailability]:
     """List rows for an org, with optional employee filter and overlap window."""
     stmt = (
         select(Unavailability)

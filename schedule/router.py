@@ -10,7 +10,7 @@ from core.database import get_db
 from auth.services.auth_service import get_current_active_user
 from authz.deps import require_manager
 
-from .schema import ScheduleSchema, ScheduleCreatePayload, ScheduleCreate
+from .schema import ScheduleSchema, ScheduleCreatePayload, ScheduleCreate, ScheduleUpdate
 from . import service 
 
 schedule_router = APIRouter(prefix="/schedules", tags=["Schedules"])
@@ -55,6 +55,7 @@ def create_schedule(
     dto = ScheduleCreate(
         org_id=user.org_id,
         created_by=user.id,
+        name=payload.name,
         range_start=payload.range_start,
         range_end=payload.range_end,
         version=payload.version,
@@ -98,3 +99,19 @@ def publish_schedule(
         schedule_id=schedule_id,
         org_id=user.org_id,
     )
+
+# Update schedule (PATCH)
+@schedule_router.patch("/{schedule_id}", response_model=ScheduleSchema)
+def schedule_patch(
+    schedule_id: int,
+    payload: ScheduleUpdate,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_active_user),
+    _mgr=Depends(require_manager),
+    ):
+    # ensure the schedule belongs to this org first
+    obj = service.get_schedule_for_org(db, schedule_id, user.org_id)
+    if not obj:
+        raise HTTPException(status_code=404, detail="schedule not found")
+
+    return service.update_schedule(db, schedule_id, payload)

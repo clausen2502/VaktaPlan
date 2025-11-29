@@ -9,7 +9,12 @@ from core.database import get_db
 from auth.services.auth_service import get_current_active_user
 from authz.deps import require_manager
 
-from .schema import UnavailabilitySchema, UnavailabilityCreatePayload, UnavailabilityCreate, UnavailabilityUpdate
+from .schema import (
+    UnavailabilitySchema,
+    UnavailabilityCreatePayload,
+    UnavailabilityCreate,
+    UnavailabilityUpdate,
+)
 from . import service
 
 unavailability_router = APIRouter(prefix="/unavailability", tags=["Unavailability"])
@@ -20,8 +25,8 @@ def list_unavailability(
     employee_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
     user = Depends(get_current_active_user),
-):
-    return service.get_unavailability(
+    ):
+    return service.get_unavailabilities(
         db,
         org_id=user.org_id,
         employee_id=employee_id,
@@ -33,7 +38,7 @@ def get_unavailability(
     unavail_id: int,
     db: Session = Depends(get_db),
     user = Depends(get_current_active_user),
-):
+    ):
     obj = service.get_unavailability_for_org(db, unavail_id, user.org_id)
     if not obj:
         raise HTTPException(status_code=404, detail="unavailability not found")
@@ -46,7 +51,7 @@ def create_unavailability(
     db: Session = Depends(get_db),
     user = Depends(get_current_active_user),
     _mgr = Depends(require_manager),
-):
+    ):
     dto = UnavailabilityCreate(org_id=user.org_id, **payload.model_dump())
     try:
         return service.create_unavailability(db, dto)
@@ -62,8 +67,7 @@ def update_unavailability(
     db: Session = Depends(get_db),
     user = Depends(get_current_active_user),
     _mgr = Depends(require_manager),
-):
-    # Prefetch for 404 like your Preference router does
+    ):
     if not service.get_unavailability_for_org(db, unavail_id, user.org_id):
         raise HTTPException(status_code=404, detail="unavailability not found")
     try:
@@ -79,8 +83,8 @@ def delete_unavailability(
     db: Session = Depends(get_db),
     user = Depends(get_current_active_user),
     _mgr = Depends(require_manager),
-):
+    ):
     if not service.get_unavailability_for_org(db, unavail_id, user.org_id):
         raise HTTPException(status_code=404, detail="unavailability not found")
-    service.delete_unavailability(db, unavail_id)
+    service.delete_unavailability(db, unavail_id, org_id=user.org_id)
     return {"message": "unavailability deleted"}

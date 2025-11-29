@@ -7,7 +7,7 @@ from sqlalchemy import select, func, and_
 from sqlalchemy.orm import Session
 
 from .models import Schedule, ScheduleStatus
-from .schema import ScheduleCreate
+from .schema import ScheduleCreate, ScheduleUpdate
 
 def get_schedules(
     db: Session,
@@ -49,6 +49,7 @@ def create_schedule(db: Session, dto: ScheduleCreate) -> Schedule:
 
     row = Schedule(
         org_id=dto.org_id,
+        name=dto.name,
         range_start=dto.range_start,
         range_end=dto.range_end,
         version=version,
@@ -67,7 +68,7 @@ def delete_schedule(db: Session, schedule_id: int) -> None:
         db.delete(row)
         db.commit()
 
-def publish_schedule(db: Session, *, schedule_id: int, org_id: int,) -> Schedule:
+def publish_schedule(db: Session, *,schedule_id: int, org_id: int,) -> Schedule:
     """
     Mark a schedule as published for the given org.
     - 404 if schedule not found or belongs to another org
@@ -84,4 +85,20 @@ def publish_schedule(db: Session, *, schedule_id: int, org_id: int,) -> Schedule
         db.refresh(sched)
 
     return sched
+
+def update_schedule(
+    db: Session,
+    schedule_id: int,
+    patch: ScheduleUpdate,
+    ) -> Schedule:
+    db_sched = db.get(Schedule, schedule_id)
+    if not db_sched:
+        raise HTTPException(status_code=404, detail="schedule not found")
+
+    data = patch.model_dump(exclude_unset=True, exclude_none=True)
+    for k, v in data.items():
+        setattr(db_sched, k, v)
+    db.commit()
+    db.refresh(db_sched)
+    return db_sched
 

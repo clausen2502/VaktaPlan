@@ -49,6 +49,7 @@ class AutoAssignServiceTests(unittest.TestCase):
 
         self.schedule = Schedule(
             org_id=self.org.id,
+            name="Shift test schedule",
             range_start=date(2025, 1, 1),
             range_end=date(2025, 1, 7),
             version=1,

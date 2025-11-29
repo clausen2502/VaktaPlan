@@ -1,0 +1,174 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+}
+
+/* NAVBAR – black & white prototype */
+
+.navbar {
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.navbar-inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0.75rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.navbar-brand {
+  font-size: 1.8rem;          /* a bit bigger than normal text */
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.navbar-right {
+  display: flex;
+  align-items: center;
+}
+
+/* put space between the two links, then a bit of space to the icon */
+.navbar-links {
+  display: flex;
+  align-items: center;
+  gap: 2.5rem;                /* distance between “Minn vinnustaður” and “Mín Vaktaplön” */
+  margin-right: 1.5rem;       /* distance from links to profile icon */
+}
+
+.navbar-link {
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.navbar-link:hover {
+  text-decoration: underline;
+}
+
+/* simple black-and-white profile icon */
+.navbar-profile {
+  height: 2.25rem;
+  width: 2.25rem;
+  border-radius: 9999px;
+  border: 1.5px solid #000000;
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.navbar-profile-icon {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  border: 1.5px solid #000000;   /* head */
+}
+
+.navbar-profile-icon::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translateX(-50%);
+  width: 18px;
+  height: 7px;
+  border-radius: 9999px 9999px 0 0;
+  border: 1.5px solid #000000;   /* shoulders */
+  border-top: none;
+}
+
+/* ---------- Org overview layout ---------- */
+
+.org-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2.5rem 2rem 3rem;
+}
+
+/* top: org name on the left, page title centered */
+.org-page-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 3rem;
+}
+
+.org-org-name {
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.org-page-title {
+  flex: 1;
+  text-align: center;
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+/* two main columns: left (locations + roles), right (employees) */
+.org-page-columns {
+  display: flex;
+  gap: 4rem;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.org-col-left,
+.org-col-right {
+  flex: 1;
+}
+
+/* sections inside columns */
+.org-section {
+  margin-bottom: 3rem;
+}
+
+/* heading + "Bæta við ..." inline */
+.org-section-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.org-section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+/* little text link-style button */
+.org-add-link {
+  font-size: 0.85rem;
+  font-style: italic;
+  text-decoration: underline;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  padding: 0;
+}
+
+/* small typography tweaks for cards */
+.org-item-name {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.org-item-actions {
+  font-size: 0.75rem;
+  font-style: italic;
+}

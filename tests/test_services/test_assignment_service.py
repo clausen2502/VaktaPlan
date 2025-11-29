@@ -52,6 +52,7 @@ class AssignmentServiceTests(unittest.TestCase):
         # ---- Seed schedules (required by Shift FK) ----
         sched1 = Schedule(
             org_id=self.org1.id,
+            name="Shift test schedule",
             range_start=date(2025, 10, 1),
             range_end=date(2025, 10, 31),
             version=1,
@@ -61,6 +62,7 @@ class AssignmentServiceTests(unittest.TestCase):
         )
         sched2 = Schedule(
             org_id=self.org2.id,
+            name="Shift test schedule 2",
             range_start=date(2025, 10, 1),
             range_end=date(2025, 10, 31),
             version=1,

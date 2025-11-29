@@ -313,9 +313,19 @@ curl -sS "$BASE_URL/schedules/{schedule_id}" -H "$(auth)"
 curl -sS -X POST "$BASE_URL/schedules" \
   -H "$json" -H "$(auth)" \
   -d '{
+    "name": "Vika 40 – handbókardæmi",
     "range_start": "2025-10-01",
     "range_end":   "2025-10-07",
     "version": 2
+  }'
+
+### Update a schedule
+curl -sS -X PATCH "$BASE_URL/schedules/{schedule_id}" \
+  -H "$json" -H "$(auth)" \
+  -d '{
+    "name": "Vika 40 – uppfært nafn",
+    "range_start": "2025-10-02",
+    "range_end":   "2025-10-08"
   }'
 
 ### Delete a schedule

@@ -2,7 +2,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from enum import Enum
 from typing import List
-from sqlalchemy import Date, DateTime, Integer, Enum as SAEnum, ForeignKey, UniqueConstraint
+from sqlalchemy import Date, DateTime, Integer, String, Enum as SAEnum, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from core.database import Base
 from weeklytemplate.models import WeeklyTemplate
@@ -18,6 +18,7 @@ class Schedule(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
 
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
     range_start: Mapped[date] = mapped_column(Date(), nullable=False)
     range_end:   Mapped[date] = mapped_column(Date(), nullable=False)
     version:     Mapped[int]  = mapped_column(Integer, nullable=False, default=1)

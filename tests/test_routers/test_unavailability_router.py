@@ -30,7 +30,7 @@ class UnavailabilityRouterTests(unittest.TestCase):
 
     # --- LIST ---
 
-    @patch("unavailability.router.service.get_unavailability")
+    @patch("unavailability.router.service.get_unavailabilities")
     def test_list_unavailability_happy_path(self, mock_list):
         mock_list.return_value = [
             Obj(id=1, employee_id=10, start_at="2025-10-18T09:00:00+00:00", end_at="2025-10-18T12:00:00+00:00", reason=None),
@@ -42,7 +42,7 @@ class UnavailabilityRouterTests(unittest.TestCase):
         self.assertEqual(len(data), 2)
         self.assertEqual(data[0]["employee_id"], 10)
 
-    @patch("unavailability.router.service.get_unavailability")
+    @patch("unavailability.router.service.get_unavailabilities")
     def test_list_unavailability_filter_employee(self, mock_list):
         mock_list.return_value = [Obj(id=3, employee_id=42, start_at="2025-10-20T09:00:00Z", end_at="2025-10-20T11:00:00Z", reason=None)]
         resp = self.client.get("/api/unavailability?employee_id=42")
