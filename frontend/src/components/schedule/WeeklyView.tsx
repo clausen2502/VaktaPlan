@@ -6,43 +6,64 @@ type WeeklyViewProps = {
   shifts: Shift[]
 }
 
-// helper: get YYYY-MM-DD from ISO
+// YYYY-MM-DD from ISO
 function toYMD(iso: string): string {
   return iso.slice(0, 10)
 }
 
-// helper: build all days in [start, end]
-function buildDayRange(startIso: string, endIso: string): string[] {
-  const days: string[] = []
-  const start = new Date(startIso)
-  const end = new Date(endIso)
+// YYYY-MM-DD from Date
+function dateToYMD(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
 
-  let d = new Date(start.getFullYear(), start.getMonth(), start.getDate())
+// get Monday of the week for given date
+function getMonday(d: Date): Date {
+  const copy = new Date(d)
+  const jsDay = copy.getDay() // 0=Sun,1=Mon,...
+  const offset = (jsDay + 6) % 7 // Mon=0, Tue=1, ..., Sun=6
+  copy.setDate(copy.getDate() - offset)
+  return copy
+}
 
-  while (d <= end) {
-    const y = d.getFullYear()
-    const m = String(d.getMonth() + 1).padStart(2, '0')
-    const day = String(d.getDate()).padStart(2, '0')
-    days.push(`${y}-${m}-${day}`)
-    d.setDate(d.getDate() + 1)
-  }
-
-  return days
+// get Sunday of the week for given date
+function getSunday(d: Date): Date {
+  const copy = new Date(d)
+  const jsDay = copy.getDay() // 0=Sun,1=Mon,...
+  const offset = (7 - jsDay) % 7 // Sun -> 0, Mon -> 6, etc.
+  copy.setDate(copy.getDate() + offset)
+  return copy
 }
 
 const weekdayLabels = ['Mán.', 'Þri.', 'Mið.', 'Fim.', 'Fös.', 'Lau.', 'Sun.']
 
 const WeeklyView: FC<WeeklyViewProps> = ({ schedule, shifts }) => {
-  const allDays = buildDayRange(schedule.range_start, schedule.range_end)
+  const schedStart = new Date(schedule.range_start)
+  const schedEnd = new Date(schedule.range_end)
 
-  // chunk into weeks of max 7 days
-  const weeks: string[][] = []
-  for (let i = 0; i < allDays.length; i += 7) {
-    weeks.push(allDays.slice(i, i + 7))
-  }
+  // Calendar span: full weeks from first Monday to last Sunday
+  const firstMonday = getMonday(schedStart)
+  const lastSunday = getSunday(schedEnd)
+
+  const msPerDay = 24 * 60 * 60 * 1000
+  const totalDays =
+    Math.round((lastSunday.getTime() - firstMonday.getTime()) / msPerDay) + 1
+  const totalWeeks = Math.max(1, Math.ceil(totalDays / 7))
 
   const [weekIndex, setWeekIndex] = useState(0)
-  const currentWeek = weeks[weekIndex] ?? []
+
+  // Build the 7 days for the current week (Mon–Sun)
+  const currentWeekStart = new Date(firstMonday)
+  currentWeekStart.setDate(firstMonday.getDate() + weekIndex * 7)
+
+  const currentWeekDays: string[] = []
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(currentWeekStart)
+    d.setDate(currentWeekStart.getDate() + i)
+    currentWeekDays.push(dateToYMD(d))
+  }
 
   // group shifts per day
   const shiftsByDay: Record<string, Shift[]> = {}
@@ -53,12 +74,11 @@ const WeeklyView: FC<WeeklyViewProps> = ({ schedule, shifts }) => {
   }
 
   const canPrev = weekIndex > 0
-  const canNext = weekIndex < weeks.length - 1
+  const canNext = weekIndex < totalWeeks - 1
 
-  const weekLabel =
-    currentWeek.length > 0
-      ? `${currentWeek[0]} – ${currentWeek[currentWeek.length - 1]}`
-      : ''
+  const weekLabel = `${currentWeekDays[0]} – ${
+    currentWeekDays[currentWeekDays.length - 1]
+  }`
 
   return (
     <div className="mt-6 border border-black rounded-xl">
@@ -74,7 +94,7 @@ const WeeklyView: FC<WeeklyViewProps> = ({ schedule, shifts }) => {
         </button>
 
         <div className="text-sm font-medium">
-          Vika {weekIndex + 1} {weekLabel && `(${weekLabel})`}
+          Vika {weekIndex + 1} ({weekLabel})
         </div>
 
         <button
@@ -87,45 +107,60 @@ const WeeklyView: FC<WeeklyViewProps> = ({ schedule, shifts }) => {
         </button>
       </div>
 
-      {/* header row with weekdays */}
+      {/* header row with weekdays (always Mon–Sun) */}
       <div className="grid grid-cols-7 border-b border-black text-xs font-medium">
-        {currentWeek.map((day, idx) => (
+        {weekdayLabels.map((lbl) => (
           <div
-            key={day}
+            key={lbl}
             className="px-2 py-1 border-r border-black last:border-r-0"
           >
-            <div>{weekdayLabels[idx % 7]}</div>
+            {lbl}
           </div>
         ))}
       </div>
 
       {/* day columns */}
       <div className="grid grid-cols-7 text-xs">
-        {currentWeek.map((day) => {
+        {currentWeekDays.map((day) => {
           const dayShifts = shiftsByDay[day] ?? []
           const dateObj = new Date(day)
           const dayNumber = dateObj.getDate()
+
+          // grey out days outside the schedule range
+          const inSchedule =
+            day >= schedule.range_start && day <= schedule.range_end
+          const dateClass = inSchedule ? 'text-[11px] font-medium mb-1'
+            : 'text-[11px] font-medium mb-1 text-neutral-500'
 
           return (
             <div
               key={day}
               className="min-h-[120px] border-r border-black px-2 py-1 last:border-r-0"
             >
-              <div className="text-[11px] font-medium mb-1">{dayNumber}</div>
+              <div className={dateClass}>{dayNumber}</div>
 
-              {dayShifts.map((sh) => (
-                <div
-                  key={sh.id}
-                  className="mb-1 rounded border border-black px-1 py-[2px]"
-                >
-                  <div className="text-[11px] font-semibold">
-                    {sh.employee_name}
-                  </div>
-                  <div className="text-[11px]">
-                    {sh.start_at.slice(11, 16)}–{sh.end_at.slice(11, 16)}
-                  </div>
-                </div>
-              ))}
+              {inSchedule &&
+                dayShifts.map((sh) => {
+                  const start = sh.start_at.slice(11, 16)
+                  const end = sh.end_at.slice(11, 16)
+
+                  return (
+                    <div
+                      key={sh.id}
+                      className="mb-1 rounded border border-black px-1 py-[2px]"
+                    >
+                      {/* times */}
+                      <div className="text-[11px] font-semibold">
+                        {start}–{end}
+                      </div>
+
+                      {/* later: employees when assigned */}
+                      {sh.employee_name && (
+                        <div className="text-[11px]">{sh.employee_name}</div>
+                      )}
+                    </div>
+                  )
+                })}
             </div>
           )
         })}

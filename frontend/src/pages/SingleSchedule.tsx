@@ -1,8 +1,8 @@
-// src/pages/SingleSchedule.tsx
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { API_BASE_URL } from '../config'
 import ScheduleShell from '../components/schedule/ScheduleShell'
+import AutoAssignButton from '../components/schedule/AutoAssignButton'
 import type { Schedule, Shift } from '../types/schedule'
 
 export default function SingleSchedule() {
@@ -108,7 +108,6 @@ export default function SingleSchedule() {
         throw new Error(text || `DELETE failed with status ${res.status}`)
       }
 
-      // After successful delete → back to schedules list
       navigate('/schedules')
     } catch (err) {
       console.error(err)
@@ -120,11 +119,30 @@ export default function SingleSchedule() {
   if (error || !schedule) return <div>{error ?? 'Plan fannst ekki.'}</div>
 
   return (
-    <ScheduleShell
-      schedule={schedule}
-      shifts={shifts}
-      onEditSchedule={handleEditSchedule}
-      onDeleteSchedule={handleDeleteSchedule}
-    />
+    <div className="mt-4">
+      {/* Header row with auto-assign button */}
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-xl font-semibold">{schedule.name}</h2>
+          <p className="text-sm">
+            {schedule.range_start} – {schedule.range_end}
+          </p>
+        </div>
+
+        <AutoAssignButton
+          scheduleId={schedule.id}
+          rangeStart={schedule.range_start}
+          rangeEnd={schedule.range_end}
+          onShiftsUpdated={setShifts}
+        />
+      </div>
+
+      <ScheduleShell
+        schedule={schedule}
+        shifts={shifts}
+        onEditSchedule={handleEditSchedule}
+        onDeleteSchedule={handleDeleteSchedule}
+      />
+    </div>
   )
 }

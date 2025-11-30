@@ -58,7 +58,7 @@ const PAGE_DAYS = 28 // 4 weeks * 7 days
 const MonthlyView: FC<MonthlyViewProps> = ({ schedule, shifts }) => {
   const days = buildDayRange(schedule.range_start, schedule.range_end)
 
-  // group shifts per day
+  // group shifts per day (key = YYYY-MM-DD)
   const shiftsByDay: Record<string, Shift[]> = {}
   for (const shift of shifts) {
     const dayKey = toYMD(shift.start_at)
@@ -77,6 +77,28 @@ const MonthlyView: FC<MonthlyViewProps> = ({ schedule, shifts }) => {
   const pageEndLabel = formatYmdDots(
     pageDays[pageDays.length - 1] ?? days[days.length - 1],
   )
+
+  // Build 28 display days aligned to Monday → Sunday
+  const displayDays: string[] = []
+  if (pageDays.length > 0) {
+    const first = new Date(pageDays[0])
+
+    // jsDay: 0=Sun,1=Mon,... -> we want Monday=0
+    const jsDay = first.getDay()
+    const mondayOffset = (jsDay + 6) % 7 // Mon=0, Tue=1, ..., Sun=6
+
+    const start = new Date(first)
+    start.setDate(start.getDate() - mondayOffset)
+
+    for (let i = 0; i < PAGE_DAYS; i++) {
+      const d = new Date(start)
+      d.setDate(start.getDate() + i)
+      const y = d.getFullYear()
+      const m = String(d.getMonth() + 1).padStart(2, '0')
+      const day = String(d.getDate()).padStart(2, '0')
+      displayDays.push(`${y}-${m}-${day}`)
+    }
+  }
 
   function handlePrev() {
     if (safePage > 0) setPage(safePage - 1)
@@ -117,12 +139,23 @@ const MonthlyView: FC<MonthlyViewProps> = ({ schedule, shifts }) => {
         </button>
       </div>
 
-      {/* 4x7 grid = 28 days */}
+      {/* Weekday header Mon–Sun */}
+      <div className="grid grid-cols-7 border-b border-black text-[11px] font-medium">
+        {weekdayLabels.map((lbl) => (
+          <div
+            key={lbl}
+            className="px-2 py-1 border-r border-black last:border-r-0"
+          >
+            {lbl}
+          </div>
+        ))}
+      </div>
+
+      {/* 4x7 grid = 28 days, aligned Monday→Sunday */}
       <div className="grid grid-cols-7 text-xs">
         {Array.from({ length: PAGE_DAYS }).map((_, idx) => {
-          const dayStr = pageDays[idx]
+          const dayStr = displayDays[idx]
 
-          // no more days on this page → empty cell
           if (!dayStr) {
             return (
               <div
@@ -133,9 +166,6 @@ const MonthlyView: FC<MonthlyViewProps> = ({ schedule, shifts }) => {
           }
 
           const dateObj = new Date(dayStr)
-          const jsDay = dateObj.getDay() // 0=Sun, 1=Mon...
-          const weekdayIdx = (jsDay + 6) % 7 // make Mon=0
-          const weekdayLabel = weekdayLabels[weekdayIdx]
           const dayNumber = dateObj.getDate()
           const monthLabel = monthLabels[dateObj.getMonth()]
 
@@ -146,8 +176,9 @@ const MonthlyView: FC<MonthlyViewProps> = ({ schedule, shifts }) => {
               key={dayStr}
               className="min-h-[80px] border-r border-b border-black px-2 py-1"
             >
+              {/* only date here, weekday is in the header */}
               <div className="text-[11px] font-medium mb-1">
-                {weekdayLabel} {dayNumber}. {monthLabel}
+                {dayNumber}. {monthLabel}
               </div>
 
               {dayShifts.map((sh) => (
@@ -155,11 +186,9 @@ const MonthlyView: FC<MonthlyViewProps> = ({ schedule, shifts }) => {
                   key={sh.id}
                   className="mb-1 rounded border border-black px-1 py-[2px]"
                 >
-                  <div className="text-[11px] font-semibold">
-                    {sh.employee_name}
-                  </div>
+                  {/* Only show times for now; employees will come later */}
                   <div className="text-[11px]">
-                    {sh.start_at.slice(11, 16)}-{sh.end_at.slice(11, 16)}
+                    {sh.start_at.slice(11, 16)}–{sh.end_at.slice(11, 16)}
                   </div>
                 </div>
               ))}

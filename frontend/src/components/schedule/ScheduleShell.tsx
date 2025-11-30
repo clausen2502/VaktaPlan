@@ -1,4 +1,3 @@
-// src/components/schedule/ScheduleShell.tsx
 import { useState, type FC } from 'react'
 import type { Schedule, Shift } from '../../types/schedule'
 import MonthlyView from './MonthlyView'
