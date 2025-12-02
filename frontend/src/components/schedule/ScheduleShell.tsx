@@ -1,16 +1,15 @@
-// src/components/schedule/ScheduleShell.tsx
-import { useState, type FC } from 'react'
+import type { FC } from 'react'
 import type { Schedule, Shift } from '../../types/schedule'
 import MonthlyView from './MonthlyView'
-import WeeklyView from './WeeklyView'
-import WeeklyTemplateEditor from './WeeklyTemplateEditor'
+import AutoAssignButton from './AutoAssignButton'
 
 type Props = {
   schedule: Schedule
   shifts: Shift[]
-  onEditSchedule?: (schedule: Schedule) => void
-  onDeleteSchedule?: (schedule: Schedule) => void
-  onShiftsUpdated?: (shifts: Shift[]) => void
+  onEditSchedule: (s: Schedule) => void
+  onDeleteSchedule: (s: Schedule) => void
+  onReloadSchedule?: () => void  // auto-assign finished
+  onPublishSchedule?: (s: Schedule) => void
 }
 
 const ScheduleShell: FC<Props> = ({
@@ -18,101 +17,75 @@ const ScheduleShell: FC<Props> = ({
   shifts,
   onEditSchedule,
   onDeleteSchedule,
-  onShiftsUpdated,
+  onReloadSchedule,
+  onPublishSchedule,
 }) => {
-  const [view, setView] = useState<'month' | 'week'>('month')
-
-  const isMonth = view === 'month'
-  const isWeek = view === 'week'
-
-  function handleEditClick() {
-    if (onEditSchedule) onEditSchedule(schedule)
-    else window.alert('Breyta plani — virkni kemur síðar.')
-  }
-
-  function handleDeleteClick() {
-    if (onDeleteSchedule) onDeleteSchedule(schedule)
-    else window.alert('Eyða plani — virkni kemur síðar.')
-  }
+  const rangeLabel = `${schedule.range_start} – ${schedule.range_end}`
+  const statusLabel =
+    schedule.status === 'published' ? 'Birt plan' : 'Drög'
+  const statusClass =
+    schedule.status === 'published'
+      ? 'text-emerald-300'
+      : 'text-yellow-300'
 
   return (
-    <div className="min-h-screen bg-white text-black px-6 py-8">
-      <header className="flex items-center justify-between mb-6">
-        <div className="text-2xl font-bold tracking-tight">VaktaPlan</div>
-        <div className="h-8 w-8 rounded-full border border-black" />
-      </header>
+    <main className="p-4">
+      {/* header */}
+      <div className="mb-4 flex flex-col gap-2">
+        {/* title + status centered */}
+        <div className="flex justify-center items-baseline gap-3">
+          <h1 className="text-3xl font-semibold text-center">
+            {schedule.name}
+          </h1>
+          <span className={`text-sm ${statusClass}`}>{statusLabel}</span>
+        </div>
 
-      {/* Weekly template ABOVE the calendar */}
-      <WeeklyTemplateEditor
-        scheduleId={schedule.id}
-        rangeStart={schedule.range_start}
-        rangeEnd={schedule.range_end}
-        onShiftsUpdated={onShiftsUpdated}
-      />
+        {/* date range centered under title */}
+        <div className="text-xs text-neutral-400 text-center">
+          {rangeLabel}
+        </div>
 
-      <div className="mb-4">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex-1 text-center">
-            <h2 className="text-2xl font-semibold mb-1">
-              {schedule.name ?? 'Vaktaplan'}
-            </h2>
+        {/* action buttons aligned to the right */}
+        <div className="mt-2 flex justify-end gap-2">
+          <AutoAssignButton
+            scheduleId={schedule.id}
+            rangeStart={schedule.range_start}
+            rangeEnd={schedule.range_end}
+            onDone={onReloadSchedule}
+          />
 
-            <div className="flex items-center justify-center gap-4 text-sm">
-              <button
-                type="button"
-                onClick={() => setView('month')}
-                aria-pressed={isMonth}
-                className={`cursor-pointer ${
-                  isMonth ? 'font-bold underline' : 'font-normal'
-                }`}
-              >
-                Mánaðaryfirlit
-              </button>
-
-              <span>|</span>
-
-              <button
-                type="button"
-                onClick={() => setView('week')}
-                aria-pressed={isWeek}
-                className={`cursor-pointer ${
-                  isWeek ? 'font-bold underline' : 'font-normal'
-                }`}
-              >
-                Vikuyfirlit
-              </button>
-            </div>
-
-            <p className="text-sm mt-2">
-              {schedule.range_start} – {schedule.range_end}
-            </p>
-          </div>
-
-          <div className="flex flex-col items-end gap-2 text-sm">
+          {onPublishSchedule && (
             <button
               type="button"
-              onClick={handleEditClick}
-              className="underline cursor-pointer"
+              onClick={() => onPublishSchedule(schedule)}
+              className="border border-black px-3 py-1 text-sm"
             >
-              Breyta plani
+              Birta plan
             </button>
-            <button
-              type="button"
-              onClick={handleDeleteClick}
-              className="underline cursor-pointer"
-            >
-              Eyða plani
-            </button>
-          </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => onEditSchedule(schedule)}
+            className="border border-black px-3 py-1 text-sm"
+          >
+            Breyta plani
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onDeleteSchedule(schedule)}
+            className="border border-black px-3 py-1 text-sm"
+          >
+            Eyða plani
+          </button>
         </div>
       </div>
 
-      {isMonth ? (
-        <MonthlyView schedule={schedule} shifts={shifts} />
-      ) : (
-        <WeeklyView schedule={schedule} shifts={shifts} />
-      )}
-    </div>
+      {/* body */}
+      <MonthlyView schedule={schedule} shifts={shifts} />
+      {/* <WeeklyView schedule={schedule} shifts={shifts} /> if you add tabs later */}
+    </main>
   )
 }
 

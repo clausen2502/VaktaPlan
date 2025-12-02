@@ -1,4 +1,3 @@
-// src/components/schedule/WeeklyTemplateEditor.tsx
 import { useEffect, useState, type FC } from 'react'
 import { API_BASE_URL } from '../../config'
 import type { Shift } from '../../types/schedule'
@@ -8,9 +7,14 @@ type WeeklyTemplateRow = {
   end_time: string     // "HH:MM:SS"
   required_staff_count: number
   notes?: string
+  location_id?: number | null
+  role_id?: number | null
 }
 
 type WeeklyTemplateByDay = Record<number, WeeklyTemplateRow[]>
+
+type LocationOption = { id: number; name: string }
+type JobRoleOption = { id: number; name: string }
 
 type Props = {
   scheduleId: number
@@ -35,6 +39,8 @@ function makeEmptyRow(): WeeklyTemplateRow {
     end_time: '17:00:00',
     required_staff_count: 1,
     notes: '',
+    location_id: undefined,
+    role_id: undefined,
   }
 }
 
@@ -57,6 +63,9 @@ const WeeklyTemplateEditor: FC<Props> = ({
   onShiftsUpdated,
 }) => {
   const [byDay, setByDay] = useState<WeeklyTemplateByDay>(makeEmptyTemplate)
+  const [locations, setLocations] = useState<LocationOption[]>([])
+  const [jobRoles, setJobRoles] = useState<JobRoleOption[]>([])
+
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [generating, setGenerating] = useState(false)
@@ -66,6 +75,51 @@ const WeeklyTemplateEditor: FC<Props> = ({
   // default generate range = schedule range, but editable
   const [startDate, setStartDate] = useState(rangeStart)
   const [endDate, setEndDate] = useState(rangeEnd)
+
+  // Load locations + job roles once
+  useEffect(() => {
+    async function loadLookups() {
+      try {
+        const token = localStorage.getItem('vakta_token')
+        if (!token) return
+
+        const [locRes, roleRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/locations`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch(`${API_BASE_URL}/jobroles`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ])
+
+        if (locRes.ok) {
+          const locJson = await locRes.json()
+          setLocations(
+            Array.isArray(locJson)
+              ? locJson
+              : Array.isArray(locJson.items)
+              ? locJson.items
+              : [],
+          )
+        }
+
+        if (roleRes.ok) {
+          const roleJson = await roleRes.json()
+          setJobRoles(
+            Array.isArray(roleJson)
+              ? roleJson
+              : Array.isArray(roleJson.items)
+              ? roleJson.items
+              : [],
+          )
+        }
+      } catch (e) {
+        console.error('Failed to load locations / job roles', e)
+      }
+    }
+
+    loadLookups()
+  }, [])
 
   // Load existing template from API and map into 7 fixed days
   useEffect(() => {
@@ -98,8 +152,8 @@ const WeeklyTemplateEditor: FC<Props> = ({
         const rawItems: any[] = Array.isArray(json)
           ? json
           : Array.isArray(json.items)
-            ? json.items
-            : []
+          ? json.items
+          : []
 
         const initial = makeEmptyTemplate()
 
@@ -116,6 +170,9 @@ const WeeklyTemplateEditor: FC<Props> = ({
                 ? it.required_staff_count
                 : 1,
             notes: it.notes ?? '',
+            location_id:
+              typeof it.location_id === 'number' ? it.location_id : null,
+            role_id: typeof it.role_id === 'number' ? it.role_id : null,
           })
         }
 
@@ -164,11 +221,32 @@ const WeeklyTemplateEditor: FC<Props> = ({
     })
   }
 
+  function validateTemplateComplete(): boolean {
+    for (const [, rows] of Object.entries(byDay)) {
+      for (const r of rows) {
+        const hasLocation = typeof r.location_id === 'number' && r.location_id > 0
+        const hasRole = typeof r.role_id === 'number' && r.role_id > 0
+        if (!hasLocation || !hasRole) {
+          setError(
+            'Allar vaktalínur í sniðmátinu þurfa að hafa bæði staðsetningu og ' +
+              'starfsheiti áður en hægt er að vista eða búa til vaktir.',
+          )
+          return false
+        }
+      }
+    }
+    return true
+  }
+
   async function handleSaveTemplate() {
     try {
       setSaving(true)
       setError(null)
       setInfo(null)
+
+      if (!validateTemplateComplete()) {
+        return
+      }
 
       const token = localStorage.getItem('vakta_token')
       if (!token) {
@@ -186,6 +264,8 @@ const WeeklyTemplateEditor: FC<Props> = ({
             end_time: r.end_time,
             required_staff_count: r.required_staff_count,
             ...(r.notes ? { notes: r.notes } : {}),
+            location_id: r.location_id,
+            role_id: r.role_id,
           }))
         },
       )
@@ -227,6 +307,10 @@ const WeeklyTemplateEditor: FC<Props> = ({
       setGenerating(true)
       setError(null)
       setInfo(null)
+
+      if (!validateTemplateComplete()) {
+        return
+      }
 
       const token = localStorage.getItem('vakta_token')
       if (!token) {
@@ -406,6 +490,50 @@ const WeeklyTemplateEditor: FC<Props> = ({
                           })
                         }
                       />
+                    </div>
+
+                    <div className="flex flex-col gap-1 mb-1">
+                      <label className="text-xs">Staðsetning</label>
+                      <select
+                        className="border border-black px-1 py-[2px] text-xs bg-white w-full"
+                        value={row.location_id ?? ''}
+                        onChange={(e) =>
+                          updateRow(day.value, idx, {
+                            location_id: e.target.value
+                              ? Number(e.target.value)
+                              : undefined,
+                          })
+                        }
+                      >
+                        <option value="">Velja stað</option>
+                        {locations.map((loc) => (
+                          <option key={loc.id} value={loc.id}>
+                            {loc.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="flex flex-col gap-1 mb-1">
+                      <label className="text-xs">Starfsheiti</label>
+                      <select
+                        className="border border-black px-1 py-[2px] text-xs bg-white w-full"
+                        value={row.role_id ?? ''}
+                        onChange={(e) =>
+                          updateRow(day.value, idx, {
+                            role_id: e.target.value
+                              ? Number(e.target.value)
+                              : undefined,
+                          })
+                        }
+                      >
+                        <option value="">Velja hlutverk</option>
+                        {jobRoles.map((role) => (
+                          <option key={role.id} value={role.id}>
+                            {role.name}
+                          </option>
+                        ))}
+                      </select>
                     </div>
 
                     <input

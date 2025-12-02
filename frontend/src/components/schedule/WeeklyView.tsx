@@ -113,19 +113,36 @@ const WeeklyView: FC<WeeklyViewProps> = ({ schedule, shifts }) => {
             >
               <div className="text-[11px] font-medium mb-1">{dayNumber}</div>
 
-              {dayShifts.map((sh) => (
-                <div
-                  key={sh.id}
-                  className="mb-1 rounded border border-black px-1 py-[2px]"
-                >
-                  <div className="text-[11px] font-semibold">
-                    {sh.employee_name}
+              {dayShifts.map((sh) => {
+                const start = sh.start_at.slice(11, 16)
+                const end = sh.end_at.slice(11, 16)
+
+                return (
+                  <div
+                    key={sh.id}
+                    className="mb-1 rounded border border-black px-1 py-[2px]"
+                  >
+                    {/* MAIN: always time */}
+                    <div className="text-[11px] font-semibold">
+                      {start}–{end}
+                    </div>
+
+                    {/* Assigned employees */}
+                    {sh.assignments && sh.assignments.length > 0 && (
+                      <ul className="mt-[1px] space-y-[1px]">
+                        {sh.assignments.map((a) => (
+                          <li
+                            key={a.employee_id}
+                            className="text-[11px]"
+                          >
+                            • {a.employee_name}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
-                  <div className="text-[11px]">
-                    {sh.start_at.slice(11, 16)}–{sh.end_at.slice(11, 16)}
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )
         })}

@@ -31,7 +31,7 @@ def get_weekly_template_rows(
     weekday: Optional[int] = None,
     location_id: Optional[int] = None,
     role_id: Optional[int] = None,
-) -> list[WeeklyTemplate]:
+    ) -> list[WeeklyTemplate]:
     stmt = select(WeeklyTemplate)
     if schedule_id is not None:
         stmt = stmt.where(WeeklyTemplate.schedule_id == schedule_id)
@@ -54,7 +54,7 @@ def upsert_weekly_template(
     *,
     schedule_id: int,
     payload: WeeklyTemplateUpsertPayload,
-) -> list[WeeklyTemplate]:
+    ) -> list[WeeklyTemplate]:
     sched = db.get(Schedule, schedule_id)
     if not sched:
         raise HTTPException(status_code=404, detail="Schedule not found")
@@ -100,7 +100,7 @@ def update_weekly_template_row(
     schedule_id: int,
     row_id: int,
     patch: WeeklyTemplateRowUpdate,
-) -> WeeklyTemplate | None:
+    ) -> WeeklyTemplate | None:
     row = db.get(WeeklyTemplate, row_id)
     if not row or row.schedule_id != schedule_id:
         return None
@@ -166,7 +166,7 @@ def _overlaps_clause(
     role_id: Optional[int],
     start_utc: datetime,
     end_utc: datetime,
-):
+    ):
     conds = [Shift.schedule_id == schedule_id]
     if location_id is not None:
         conds.append(Shift.location_id == location_id)
@@ -186,7 +186,7 @@ def generate_from_weekly_template(
     *,
     schedule_id: int,
     body: WeeklyTemplateGeneratePayload,
-) -> dict:
+    ) -> dict:
     sched = db.get(Schedule, schedule_id)
     if not sched:
         raise HTTPException(status_code=404, detail="Schedule not found")
@@ -196,6 +196,16 @@ def generate_from_weekly_template(
     ))
     if not items:
         return {"created": 0, "replaced": 0, "skipped": 0}
+    
+    missing_roles = [it for it in items if it.role_id is None]
+    if missing_roles:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "All weekly template rows must have a job role selected "
+                "before generating shifts."
+            ),
+        )
 
     start_local_midnight = _combine_local_utc(body.start_date, time(0, 0, 0))
     end_local_23_59_59   = _combine_local_utc(body.end_date,   time(23, 59, 59))
