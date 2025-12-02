@@ -25,8 +25,8 @@ export default function App() {
           <Route path="preferences" element={<EmployeePreferences />} />
         </Route>
 
-        {/* anything else -> home */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        {/* anything else -> login */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   )

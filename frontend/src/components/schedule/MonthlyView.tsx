@@ -186,10 +186,21 @@ const MonthlyView: FC<MonthlyViewProps> = ({ schedule, shifts }) => {
                   key={sh.id}
                   className="mb-1 rounded border border-black px-1 py-[2px]"
                 >
-                  {/* Only show times for now; employees will come later */}
-                  <div className="text-[11px]">
+                  {/* Time range */}
+                  <div className="text-[11px] font-semibold">
                     {sh.start_at.slice(11, 16)}–{sh.end_at.slice(11, 16)}
                   </div>
+
+                  {/* Assigned employees */}
+                  {sh.assignments && sh.assignments.length > 0 && (
+                    <ul className="mt-[1px] space-y-[1px]">
+                      {sh.assignments.map((a) => (
+                        <li key={a.employee_id} className="text-[11px]">
+                          • {a.employee_name}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               ))}
             </div>

@@ -1,20 +1,18 @@
-// src/components/schedule/AutoAssignButton.tsx
 import { useState, type FC } from 'react'
 import { API_BASE_URL } from '../../config'
-import type { Shift } from '../../types/schedule'
 
 type Props = {
   scheduleId: number
   rangeStart: string   // YYYY-MM-DD
   rangeEnd: string     // YYYY-MM-DD
-  onShiftsUpdated?: (shifts: Shift[]) => void
+  onDone?: () => void  // parent will reload schedule
 }
 
 const AutoAssignButton: FC<Props> = ({
   scheduleId,
   rangeStart,
   rangeEnd,
-  onShiftsUpdated,
+  onDone,
 }) => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -32,35 +30,28 @@ const AutoAssignButton: FC<Props> = ({
         return
       }
 
-      // 1) call auto-assign service
-      const res = await fetch(
-        `${API_BASE_URL}/assignments/auto-assign`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            schedule_id: scheduleId,
-            start_date: rangeStart,
-            end_date: rangeEnd,
-            policy: 'reassign_all', // or "fill_missing" if you prefer
-            dry_run: false,
-          }),
+      const res = await fetch(`${API_BASE_URL}/assignments/auto-assign`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
-      )
+        body: JSON.stringify({
+          schedule_id: scheduleId,
+          start_date: rangeStart,
+          end_date: rangeEnd,
+          policy: 'reassign_all',
+          dry_run: false,
+        }),
+      })
 
       if (!res.ok) {
         const text = await res.text()
-        throw new Error(
-          text || `Villa við að úthluta vöktum (${res.status})`,
-        )
+        throw new Error(text || `Villa við að úthluta vöktum (${res.status})`)
       }
 
       const result = await res.json()
 
-      // small summary text, works even if some fields are missing
       const parts: string[] = []
       if (typeof result.assigned === 'number') {
         parts.push(`${result.assigned} vaktasætum úthlutað`)
@@ -80,23 +71,7 @@ const AutoAssignButton: FC<Props> = ({
           : 'Sjálfvirk úthlutun kláraðist.',
       )
 
-      // 2) refetch shifts so Weekly/Monthly show assigned employees
-      const shiftsRes = await fetch(
-        `${API_BASE_URL}/shifts?schedule_id=${scheduleId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      )
-
-      if (!shiftsRes.ok) {
-        const text = await shiftsRes.text()
-        throw new Error(
-          text || 'Vaktir voru úthlutaðar en ekki tókst að sækja þær.',
-        )
-      }
-
-      const newShifts = (await shiftsRes.json()) as Shift[]
-      if (onShiftsUpdated) onShiftsUpdated(newShifts)
+      if (onDone) onDone()
     } catch (err) {
       console.error(err)
       setError(
